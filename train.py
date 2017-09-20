@@ -72,7 +72,7 @@ model, predictor_sizes = ssd_300(image_size=(img_height, img_width, img_channels
                                   variances=variances,
                                   coords=coords,
                                   normalize_coords=normalize_coords)
-#model.load_weights('./ssd300_weights.h5', by_name=True) # You should load pre-trained weights for the modified VGG-16 base network here
+model.load_weights('./ssd300_0_weights_epoch000009_loss0.6090.h5', by_name=True) # You should load pre-trained weights for the modified VGG-16 base network here
 
 
 # ### 2. Set up the training
@@ -98,7 +98,7 @@ model, predictor_sizes = ssd_300(image_size=(img_height, img_width, img_channels
 
 ### Set up training
 
-batch_size = 4
+batch_size = 16
 images_dir = '/osn/SpaceNet-MOD/training/vehicles/rgb-ps-dra/DetectNet/300/images/'
 images_dir = '/osn/SpaceNet-MOD/training/single-class/18/rgb-ps-dra/DetectNet/300/images/'
 val_dir = '/osn/SpaceNet-MOD/training/vehicles/rgb-ps-dra/DetectNet/300/images/'
@@ -323,19 +323,19 @@ print(y_pred_decoded[i])
 
 # 5: Draw the predicted boxes onto the image
 
-plt.figure(figsize=(20,12))
-plt.imshow(X[i])
+#plt.figure(figsize=(20,12))
+#plt.imshow(X[i])
 
-current_axis = plt.gca()
+#current_axis = plt.gca()
 
-for box in y_pred_decoded[i]:
-    label = '{}: {:.2f}'.format(classes[int(box[0])], box[1])
-    current_axis.add_patch(plt.Rectangle((box[2], box[4]), box[3]-box[2], box[5]-box[4], color='blue', fill=False, linewidth=2))
+#for box in y_pred_decoded[i]:
+#    label = '{}: {:.2f}'.format(classes[int(box[0])], box[1])
+#    current_axis.add_patch(plt.Rectangle((box[2], box[4]), box[3]-box[2], box[5]-box[4], color='blue', fill=False, linewidth=2))
 #     current_axis.text(box[2], box[4], label, size='x-large', color='white', bbox={'facecolor':'blue', 'alpha':1.0})
 
-for box in y_true[i]:
-    label = '{}'.format(classes[int(box[0])])
-    current_axis.add_patch(plt.Rectangle((box[1], box[3]), box[2]-box[1], box[4]-box[3], color='green', fill=False, linewidth=2))
+#for box in y_true[i]:
+#    label = '{}'.format(classes[int(box[0])])
+#    current_axis.add_patch(plt.Rectangle((box[1], box[3]), box[2]-box[1], box[4]-box[3], color='green', fill=False, linewidth=2))
 #     current_axis.text(box[1], box[3], label, size='x-large', color='white', bbox={'facecolor':'green', 'alpha':1.0})
 
 
