@@ -72,7 +72,7 @@ model, predictor_sizes = ssd_300(image_size=(img_height, img_width, img_channels
                                   variances=variances,
                                   coords=coords,
                                   normalize_coords=normalize_coords)
-model.load_weights('./ssd300_0_weights_epoch000009_loss0.6090.h5', by_name=True) # You should load pre-trained weights for the modified VGG-16 base network here
+model.load_weights('./ssd300_weights.h5',     by_name=True) # You should load pre-trained weights for the modified VGG-16     base network here
 
 
 # ### 2. Set up the training
@@ -98,9 +98,9 @@ model.load_weights('./ssd300_0_weights_epoch000009_loss0.6090.h5', by_name=True)
 
 ### Set up training
 
-batch_size = 16
-images_dir = '/osn/SpaceNet-MOD/training/vehicles/rgb-ps-dra/DetectNet/300/images/'
-images_dir = '/osn/SpaceNet-MOD/training/single-class/18/rgb-ps-dra/DetectNet/300/images/'
+batch_size = 4
+images_dir = '../18/'
+# images_dir = '/osn/SpaceNet-MOD/training/single-class/18/rgb-ps-dra/DetectNet/300/images/'
 val_dir = '/osn/SpaceNet-MOD/training/vehicles/rgb-ps-dra/DetectNet/300/images/'
 
 
@@ -215,12 +215,12 @@ def lr_schedule(epoch):
 
 # 7: Run training
 
-epochs = 100
+epochs = 1000
 
 history = model.fit_generator(generator = train_generator,
                               steps_per_epoch = ceil(n_train_samples/batch_size),
                               epochs = epochs,
-                              callbacks = [ModelCheckpoint('./ssd300_0_weights_epoch{epoch:06d}_loss{loss:.4f}.h5',
+                              callbacks = [ModelCheckpoint('./ssd300_weights.h5',
                                                            monitor='val_loss',
                                                            verbose=1,
                                                            save_best_only=True,
@@ -229,7 +229,7 @@ history = model.fit_generator(generator = train_generator,
                                                            period=1),
                                            LearningRateScheduler(lr_schedule),
                                            EarlyStopping(monitor='val_loss',
-                                                         min_delta=0.001,
+                                                         min_delta=0.000001,
                                                          patience=2)],
                               validation_data = val_generator,
                               validation_steps = ceil(n_val_samples/batch_size))
