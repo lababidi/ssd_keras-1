@@ -24,9 +24,6 @@ from keras.layers import Input, Lambda, Activation, Conv2D, MaxPooling2D, Reshap
 from keras_layer_AnchorBoxes import AnchorBoxes
 from keras_layer_L2Normalization import L2Normalization
 
-def get_w(n):
-    return [np.load('/osn/share/vgg/{}_0.npy'.format(n)), np.load('/osn/share/vgg/{}_1.npy'.format(n))]
-
 def ssd_300(image_size,
             n_classes,
             min_scale=0.1,
@@ -43,7 +40,8 @@ def ssd_300(image_size,
             limit_boxes=False,
             variances=[0.1, 0.1, 0.2, 0.2],
             coords='centroids',
-            normalize_coords=False):
+            normalize_coords=False,
+            root='/'):
     '''
     Build a Keras model with SSD_300 architecture, see references.
 
@@ -126,6 +124,9 @@ def ssd_300(image_size,
     References:
         https://arxiv.org/abs/1512.02325v5
     '''
+
+    def get_w(n):
+        return [np.load('{}/vgg/{}_0.npy'.format(root, n)), np.load('{}/vgg/{}_1.npy'.format(root, n))]
 
     n_predictor_layers = 6 # The number of predictor conv layers in the network is 6 for the original SSD300
 
