@@ -20,6 +20,7 @@ parser.add_argument('labels', help="labels csv file ['image_name', 'xmin', 'xmax
 parser.add_argument('--test', help="test labels csv file")
 parser.add_argument('--batch_size', default=4)
 parser.add_argument('--epochs', default=1000)
+parser.add_argument('--fresh', action='store_true')
 parser.add_argument('--classes', help="list of integers of classes to include",
                     default=None, type=lambda s: [int(cl) for cl in s.split(',')])
 parser.add_argument('--var_dir', help="Validation directory with images")
@@ -55,7 +56,8 @@ model, predictor_sizes = ssd_300(image_size=(img_height, img_width, img_channels
                                  variances=variances,
                                  coords=coords,
                                  normalize_coords=normalize_coords)
-model.load_weights('./ssd300_weights.h5', by_name=True)
+if not args.fresh:
+    model.load_weights('./ssd300_weights.h5', by_name=True)
 
 model.compile(
     optimizer=Adam(lr=0.01, beta_1=0.9, beta_2=0.999, epsilon=1e-08, decay=5e-05),
