@@ -18,8 +18,8 @@ from keras import backend as K
 parser = argparse.ArgumentParser()
 parser.add_argument('labels', help="labels csv file ['image_name', 'xmin', 'xmax', 'ymin', 'ymax', 'class_id']")
 parser.add_argument('--test', help="test labels csv file")
-parser.add_argument('--batch_size', default=4)
-parser.add_argument('--epochs', default=1000)
+parser.add_argument('--batch_size', default=4, type=int)
+parser.add_argument('--epochs', default=1000, type=int)
 parser.add_argument('--fresh', action='store_true')
 parser.add_argument('--classes', help="list of integers of classes to include",
                     default=None, type=lambda s: [int(cl) for cl in s.split(',')])
