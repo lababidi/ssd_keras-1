@@ -141,10 +141,30 @@ class BatchGenerator:
 
     def __init__(self, labels_path=None, input_format=None, include_classes=None):
 
+        """
+        Arguments:
+            labels_path (str, optional): The filepath to a CSV file that contains one ground truth bounding box per line
+                and each line contains the following six items: image file name, class ID, xmin, xmax, ymin, ymax.
+                The six items do not have to be in a specific order, but they must be the first six columns of
+                each line. The order of these items in the CSV file must be specified in `input_format`.
+                The class ID is an integer greater than zero. Class ID 0 is reserved for the background class.
+                `xmin` and `xmax` are the left-most and right-most absolute horizontal coordinates of the box,
+                `ymin` and `ymax` are the top-most and bottom-most absolute vertical coordinates of the box.
+                The image name is expected to be just the name of the image file without the directory path
+                at which the image is located. Defaults to `None`.
+            input_format (list, optional): A list of six strings representing the order of the six items
+                image file name, class ID, xmin, xmax, ymin, ymax in the input CSV file. The expected strings
+                are 'image_name', 'xmin', 'xmax', 'ymin', 'ymax', 'class_id'. Defaults to `None`.
+            ret (bool, optional): Whether or not the image filenames and labels are to be returned.
+                Defaults to `False`.
+
+        Returns:
+            None by default, optionally the image filenames and labels.
+        """
         # These are the variables we always need
         box_output_format = ['class_id', 'xmin', 'xmax', 'ymin', 'ymax']
         # self.images_path = images_path
-        self.class_map = {v:k for k, v in enumerate(include_classes)}
+        self.class_map = {v:k for k, v in enumerate(include_classes)} if include_classes else None
         self.include_classes = include_classes
         self.box_output_format = box_output_format
 
@@ -167,31 +187,6 @@ class BatchGenerator:
         # class_id)` for the respective bounding box.
         self.labels = []
         # Each entry here will contain a 2D Numpy array with all the ground truth boxes for a given image
-        self.parse_csv( labels_path, input_format)
-
-    def parse_csv(self,
-                  labels_path=None,
-                  input_format=None):
-        """
-        Arguments:
-            labels_path (str, optional): The filepath to a CSV file that contains one ground truth bounding box per line
-                and each line contains the following six items: image file name, class ID, xmin, xmax, ymin, ymax.
-                The six items do not have to be in a specific order, but they must be the first six columns of
-                each line. The order of these items in the CSV file must be specified in `input_format`.
-                The class ID is an integer greater than zero. Class ID 0 is reserved for the background class.
-                `xmin` and `xmax` are the left-most and right-most absolute horizontal coordinates of the box,
-                `ymin` and `ymax` are the top-most and bottom-most absolute vertical coordinates of the box.
-                The image name is expected to be just the name of the image file without the directory path
-                at which the image is located. Defaults to `None`.
-            input_format (list, optional): A list of six strings representing the order of the six items
-                image file name, class ID, xmin, xmax, ymin, ymax in the input CSV file. The expected strings
-                are 'image_name', 'xmin', 'xmax', 'ymin', 'ymax', 'class_id'. Defaults to `None`.
-            ret (bool, optional): Whether or not the image filenames and labels are to be returned.
-                Defaults to `False`.
-
-        Returns:
-            None by default, optionally the image filenames and labels.
-        """
 
         # If we get arguments in this call, set them
         if labels_path is not None:
@@ -228,7 +223,7 @@ class BatchGenerator:
 
                         for item in self.box_output_format:  # For each item in the output format...
                             val = int(i[self.input_format.index(item)].strip())
-                            if item == 'class_id':
+                            if item == 'class_id' and self.class_map:
                                 obj.append(self.class_map[val])
                             else:
                                 obj.append(val)
