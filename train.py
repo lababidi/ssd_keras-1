@@ -13,30 +13,32 @@ from keras_ssd300 import ssd_300
 from keras_ssd_loss import SSDLoss
 from ssd_box_encode_decode_utils import SSDBoxEncoder, decode_y2
 
+from keras import backend as K
+
 parser = argparse.ArgumentParser()
 parser.add_argument('labels', help="labels csv file ['image_name', 'xmin', 'xmax', 'ymin', 'ymax', 'class_id']")
 parser.add_argument('--test', help="test labels csv file")
 parser.add_argument('--batch_size', default=4)
 parser.add_argument('--epochs', default=1000)
-parser.add_argument('--classes',help="list of integers of classes to include",
-                    default=None, type=lambda s: [int(x) for x in s.split(',')])
+parser.add_argument('--classes', help="list of integers of classes to include",
+                    default=None, type=lambda s: [int(cl) for cl in s.split(',')])
 parser.add_argument('--var_dir', help="Validation directory with images")
 parser.add_argument('--model', help="model name to be used for weights file", default='ssd_300')
 args = parser.parse_args()
 
 
-from keras import backend as K
 img_height = 300  # Height of the input images
 img_width = 300  # Width of the input images
 img_channels = 3  # Number of color channels of the input images
-n_classes = 2  # Number of classes including the background class, e.g. 21 for the Pascal VOC datasets
+n_classes = len(args.classes)+1 if args.classes else 2  # Number of classes including the background class, e.g. 21 for the Pascal VOC datasets
 scales = [0.2] * 7
 aspect_ratios = [[1.0]] * 6
 two_boxes_for_ar1 = True
 limit_boxes = False  # Whether or not you want to limit the anchor boxes to lie entirely within the image boundaries
-variances = [0.1, 0.1, 0.2,0.2]
+variances = [0.1, 0.1, 0.2, 0.2]
 # The variances by which the encoded target coordinates are scaled as in the original implementation
-coords = 'minmax'  # Whether the box coordinates to be used as targets for the model should be in the 'centroids' or 'minmax' format, see documentation
+coords = 'minmax'
+# Whether the box coordinates to be used as targets for the model should be in the 'centroids' or 'minmax' format,
 normalize_coords = False
 
 
@@ -44,7 +46,6 @@ K.clear_session()
 model, predictor_sizes = ssd_300(image_size=(img_height, img_width, img_channels),
                                  n_classes=n_classes,
                                  min_scale=None,
-                                 # You could pass a min scale and max scale instead of the `scales` list, but we're not doing that here
                                  max_scale=None,
                                  scales=scales,
                                  aspect_ratios_global=None,
@@ -95,6 +96,7 @@ def lr_schedule(epoch):
         return 0.001
     else:
         return 0.0001
+
 
 print(val_dataset.count, ceil(val_dataset.count / args.batch_size))
 history = model.fit_generator(generator=training,

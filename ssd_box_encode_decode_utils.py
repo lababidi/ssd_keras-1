@@ -70,7 +70,7 @@ def iou(boxes1, boxes2, coords='centroids'):
     elif coords != 'minmax':
         raise ValueError("Unexpected value for `coords`. Supported values are 'minmax' and 'centroids'.")
 
-    intersection = np.maximum(0, np.min(boxes1[:, 1], boxes2[:, 1]) - np.max(boxes1[:, 0], boxes2[:, 0])) * np.maximum(
+    intersection = np.maximum(0, np.minimum(boxes1[:, 1], boxes2[:, 1]) - np.maximum(boxes1[:, 0], boxes2[:, 0])) * np.maximum(
         0, np.minimum(boxes1[:, 3], boxes2[:, 3]) - np.maximum(boxes1[:, 2], boxes2[:, 2]))
     union = (boxes1[:, 1] - boxes1[:, 0]) * (boxes1[:, 3] - boxes1[:, 2]) + (boxes2[:, 1] - boxes2[:, 0]) * (
         boxes2[:, 3] - boxes2[:, 2]) - intersection
