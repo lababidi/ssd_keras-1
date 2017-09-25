@@ -140,24 +140,11 @@ class BatchGenerator:
     """
 
     def __init__(self, labels_path=None, input_format=None, include_classes=None):
-        """
-        Arguments:
-            images_path (str): The filepath to the image samples.
-            include_classes (list, optional): Either 'all' or a list of integers containing the class IDs that
-                are to be included in the dataset. Defaults to 'all', in which case all boxes will be included
-                in the dataset.
-            box_output_format (list, optional): A list of five strings representing the desired order of the five
-                items class ID, xmin, xmax, ymin, ymax in the generated data. The expected strings are
-                'xmin', 'xmax', 'ymin', 'ymax', 'class_id'. If you want to train the model, this
-                must be the order that the box encoding class requires as input. Defaults to
-                `['class_id', 'xmin', 'xmax', 'ymin', 'ymax']`. Note that even though the parser methods are
-                able to produce different output formats, the SSDBoxEncoder currently requires the format
-                `['class_id', 'xmin', 'xmax', 'ymin', 'ymax']`. This list only specifies the five box parameters
-                that are relevant as training targets, a list of filenames is generated separately.
-        """
+
         # These are the variables we always need
         box_output_format = ['class_id', 'xmin', 'xmax', 'ymin', 'ymax']
         # self.images_path = images_path
+        self.class_map = {v:k for k, v in enumerate(include_classes)}
         self.include_classes = include_classes
         self.box_output_format = box_output_format
 
@@ -240,8 +227,11 @@ class BatchGenerator:
                         # Store the box class and coordinates here
 
                         for item in self.box_output_format:  # For each item in the output format...
-                            obj.append(int(i[self.input_format.index(item)].strip()))
-                            # ...select the respective column in the input format and append it to `obj`
+                            val = int(i[self.input_format.index(item)].strip())
+                            if item == 'class_id':
+                                obj.append(self.class_map[val])
+                            else:
+                                obj.append(val)
                         data.append(obj)
 
         data = sorted(data)  # The data needs to be sorted, otherwise the next step won't give the correct result
