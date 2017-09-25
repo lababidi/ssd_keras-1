@@ -17,9 +17,9 @@ parser = argparse.ArgumentParser()
 parser.add_argument('labels', help="labels csv file ['image_name', 'xmin', 'xmax', 'ymin', 'ymax', 'class_id']")
 parser.add_argument('--test', help="test labels csv file")
 parser.add_argument('--batch_size', default=4)
-parser.add_argument('--epoch', default=1000)
+parser.add_argument('--epochs', default=1000)
 parser.add_argument('--classes',help="list of integers of classes to include",
-                    default=None, type=lambda s: int(s.split(',')))
+                    default=None, type=lambda s: [int(x) for x in s.split(',')])
 parser.add_argument('--var_dir', help="Validation directory with images")
 parser.add_argument('--model', help="model name to be used for weights file", default='ssd_300')
 args = parser.parse_args()
@@ -96,7 +96,7 @@ def lr_schedule(epoch):
     else:
         return 0.0001
 
-
+print(val_dataset.count, ceil(val_dataset.count / args.batch_size))
 history = model.fit_generator(generator=training,
                               steps_per_epoch=ceil(train_dataset.count / args.batch_size),
                               epochs=args.epochs,
