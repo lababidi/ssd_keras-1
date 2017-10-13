@@ -125,11 +125,12 @@ def lr_schedule(epoch):
     else:
         return 0.0001
 
+os.mkdir(args.name)
 
 history = model.fit_generator(generator=train_generator,
                               steps_per_epoch=ceil(train_dataset.count / args.batch_size),
                               epochs=args.epochs,
-                              callbacks=[ModelCheckpoint('./' + args.name + '_epoch{epoch:04d}_loss{loss:.4f}.h5',
+                              callbacks=[ModelCheckpoint('./' + args.name + '/epoch{epoch:04d}_loss{loss:.4f}.h5',
                                                          monitor='val_loss',
                                                          verbose=1,
                                                          save_best_only=False,
