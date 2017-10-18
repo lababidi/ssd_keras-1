@@ -1,3 +1,4 @@
+
 from argparse import ArgumentParser
 from math import ceil
 
@@ -32,6 +33,7 @@ args = parser.parse_args()
 if args.val_csv is None:
     args.val_csv = args.train_csv
 
+print('classes: {}'.format(args.classes))
 print(args.min_scale, args.max_scale)
 img_height = 300  # Height of the input images
 img_width = 300  # Width of the input images
@@ -125,7 +127,8 @@ def lr_schedule(epoch):
     else:
         return 0.0001
 
-os.mkdir(args.name)
+if not os.path.exists(args.name):
+    os.mkdir(args.name)
 
 history = model.fit_generator(generator=train_generator,
                               steps_per_epoch=ceil(train_dataset.count / args.batch_size),
@@ -142,8 +145,8 @@ history = model.fit_generator(generator=train_generator,
                               validation_data=val_generator,
                               validation_steps=ceil(val_dataset.count / args.batch_size))
 
-model.save('./{}.h5'.format(args.name))
-model.save_weights('./{}_weights.h5'.format(args.name))
+model.save('./' + args.name + '/{}.h5'.format(args.name))
+model.save_weights('./' + args.name + '/{}_weights.h5'.format(args.name))
 
 print("Model and weights saved as {}[_weights].h5".format(args.name))
 
@@ -185,5 +188,5 @@ for r, d, filenames in os.walk(val_dir):
                 except ValueError as e:
                     pass
 df = pandas.DataFrame(results, columns=['file_name', 'class_id', 'conf', 'xmin', 'xmax', 'ymin', 'ymax'])
-df['class_id'] = df['class_id'].apply(lambda xx: train_dataset.class_map[xx])
-df.to_csv(args.outcsv)
+df['class_id'] = df['class_id'].apply(lambda xx: train_dataset.class_map_inv[xx])
+df.to_csv('./' + args.name + '/' + args.outcsv)
