@@ -28,6 +28,7 @@ from PIL import Image
 import csv
 import os
 from bs4 import BeautifulSoup
+import rasterio
 
 
 # Image processing functions used by the generator to perform the following image manipulations:
@@ -497,8 +498,10 @@ class BatchGenerator:
                 current = 0
 
             for filename in self.filenames[current:current + batch_size]:
-                with Image.open('{}'.format(filename)) as img:
-                    batch_X.append(np.array(img))
+                with rasterio.open('{}'.format(filename)) as img:
+                    batch_X.append(np.array(img.read()[:3].transpose([1,2,0])))
+              #   with Image.open('{}'.format(filename)) as img:
+              #      batch_X.append(np.array(img))
             batch_y = deepcopy(self.labels[current:current + batch_size])
 
             this_filenames = self.filenames[
@@ -906,8 +909,9 @@ class BatchGenerator:
 
         for k, filename in enumerate(self.filenames[start:stop]):
             i = k + start
-            with Image.open('{}'.format(filename)) as img:
-                image = np.array(img)
+            with rasterio.open('{}'.format(filename)) as img:                                   image = img.read()[:3].transpose([1,2,0])
+#            with Image.open('{}'.format(filename)) as img:
+#                image = np.array(img)
             targets = np.copy(self.labels[i])
 
             if diagnostics:
