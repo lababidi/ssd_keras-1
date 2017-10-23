@@ -25,13 +25,9 @@ def console():
     parser.add_argument('--epochs', type=int, default=1000)
     parser.add_argument('--batch_size', type=int, default=4)
     parser.add_argument('--outcsv', default='ssd_results.csv')
-    parser.add_argument('--val_csv')
     parser.add_argument('--split_ratio', type=float, default=1.0)
-    parser.add_argument('train_csv', default='/osn/share/rail.csv')
+    parser.add_argument('csv', default='/osn/share/rail.csv')
     args = parser.parse_args()
-
-    if args.val_csv is None:
-        args.val_csv = args.train_csv
 
     print(args.min_scale, args.max_scale)
     img_height = 300  # Height of the input images
@@ -88,7 +84,7 @@ def console():
 
     dataset_generator = BatchGenerator(include_classes=args.classes)
 
-    dataset_generator.parse_csv(labels_path=args.train_csv,
+    dataset_generator.parse_csv(labels_path=args.csv,
                             input_format=['image_name', 'xmin', 'xmax', 'ymin', 'ymax', 'class_id'], split_ratio=args.split_ratio)
 
     train_generator = dataset_generator.generate(batch_size=args.batch_size,
