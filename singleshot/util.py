@@ -183,7 +183,7 @@ class BatchGenerator:
     def parse_csv(self,
                   labels_path=None,
                   input_format=None,
-                  ret=False):
+                  split_ratio=0.7):
         '''
         Arguments:
             labels_path (str, optional): The filepath to a CSV file that contains one ground truth bounding box per line
@@ -271,8 +271,19 @@ class BatchGenerator:
                     current_file = row[0]
                     current_labels.append(row[1:])
         self.count = len(self.filenames)
-        if ret:  # In case we want to return these
-            return self.filenames, self.labels
+        # if ret:  # In case we want to return these
+        #     return self.filenames, self.labels
+
+        self.filenames, self.labels = shuffle(self.filenames, self.labels)  # Shuffle the data before we begin
+
+        if split_ratio > 1.0 or split_ratio < 0:
+            split_ratio = 0.7
+
+        self.train_filenames = self.filenames[:int(len(self.filenames) * split_ratio)]
+        self.val_filenames = self.filenames[int(len(self.filenames) * split_ratio):]
+
+        self.train_labels = self.labels[:int(len(self.labels) * split_ratio)]
+        self.val_filenames = self.labels[int(len(self.labels) * split_ratio):]
 
     def parse_xml(self,
                   annotations_path=None,
@@ -393,7 +404,8 @@ class BatchGenerator:
                  gray=False,
                  limit_boxes=True,
                  include_thresh=0.3,
-                 diagnostics=False):
+                 diagnostics=False,
+                 val=False):
         '''
         Generate batches of samples and corresponding labels indefinitely from
         lists of filenames and labels.
@@ -480,7 +492,11 @@ class BatchGenerator:
             of the labels is according to the `box_output_format` that was specified in the constructor.
         '''
 
-        self.filenames, self.labels = shuffle(self.filenames, self.labels)  # Shuffle the data before we begin
+        if not val:
+            filenames, labels = shuffle(self.train_filenames, self.train_labels) # Shuffle the data before we begin
+        else:
+            filenames, labels = shuffle(self.val_filenames, self.val_labels)  # Shuffle the data before we begin
+
         current = 0
 
         # Find out the indices of the box coordinates in the label data
@@ -494,16 +510,16 @@ class BatchGenerator:
             batch_X, batch_y = [], []
 
             # Shuffle the data after each complete pass
-            if current >= len(self.filenames):
-                self.filenames, self.labels = shuffle(self.filenames, self.labels)
+            if current >= len(filenames):
+                filenames, labels = shuffle(filenames, labels)
                 current = 0
 
-            for filename in self.filenames[current:current + batch_size]:
+            for filename in filenames[current:current + batch_size]:
                 with Image.open('{}'.format(filename)) as img:
                     batch_X.append(np.array(img))
-            batch_y = deepcopy(self.labels[current:current + batch_size])
+            batch_y = deepcopy(labels[current:current + batch_size])
 
-            this_filenames = self.filenames[
+            this_filenames = filenames[
                              current:current + batch_size]  # The filenames of the files in the current batch
 
             if diagnostics:

@@ -84,25 +84,19 @@ def console():
                                     normalize_coords=normalize_coords)
 
 
-    train_dataset = BatchGenerator(include_classes=args.classes)
+    dataset_generator = BatchGenerator(include_classes=args.classes)
 
-    train_dataset.parse_csv(labels_path=args.train_csv,
-                            input_format=['image_name', 'xmin', 'xmax', 'ymin', 'ymax', 'class_id'])
+    dataset_generator.parse_csv(labels_path=args.train_csv,
+                            input_format=['image_name', 'xmin', 'xmax', 'ymin', 'ymax', 'class_id'], split_ratio=0.8)
 
-    train_generator = train_dataset.generate(batch_size=args.batch_size,
+    train_generator = dataset_generator.generate(batch_size=args.batch_size,
                                              train=True,
                                              ssd_box_encoder=ssd_box_encoder,
                                              limit_boxes=True,  # While the anchor boxes are not being clipped,
                                              include_thresh=0.4,
                                              diagnostics=False)
 
-
-    val_dataset = BatchGenerator(include_classes=args.classes)
-
-    val_dataset.parse_csv(labels_path=args.val_csv,
-                          input_format=['image_name', 'xmin', 'xmax', 'ymin', 'ymax', 'class_id'])
-
-    val_generator = val_dataset.generate(batch_size=args.batch_size,
+    val_generator = dataset_generator.generate(batch_size=args.batch_size,
                                          train=True,
                                          ssd_box_encoder=ssd_box_encoder,
                                          equalize=False,
@@ -115,7 +109,8 @@ def console():
                                          gray=False,
                                          limit_boxes=True,
                                          include_thresh=0.4,
-                                         diagnostics=False)
+                                         diagnostics=False,
+                                         val=True)
 
 
     def lr_schedule(epoch):
@@ -128,7 +123,7 @@ def console():
         os.mkdir(args.name)
 
     history = model.fit_generator(generator=train_generator,
-                                  steps_per_epoch=ceil(train_dataset.count / args.batch_size),
+                                  steps_per_epoch=ceil(dataset_generator.count / args.batch_size),
                                   epochs=args.epochs,
                                   callbacks=[ModelCheckpoint('./' + args.name + '/epoch{epoch:04d}_loss{loss:.4f}.h5',
                                                              monitor='val_loss',
@@ -140,14 +135,14 @@ def console():
                                              LearningRateScheduler(lr_schedule),
                                              ],
                                   validation_data=val_generator,
-                                  validation_steps=ceil(val_dataset.count / args.batch_size))
+                                  validation_steps=ceil(dataset_generator.count / args.batch_size))
 
     model.save('./' + args.name + '/{}.h5'.format(args.name))
     model.save_weights('./' + args.name + '/{}_weights.h5'.format(args.name))
 
     print("Model and weights saved as {}[_weights].h5".format(args.name))
 
-    predict_generator = val_dataset.generate(batch_size=1,
+    predict_generator = dataset_generator.generate(batch_size=1,
                                              train=False,
                                              equalize=False,
                                              brightness=False,
@@ -159,7 +154,8 @@ def console():
                                              gray=False,
                                              limit_boxes=True,
                                              include_thresh=0.4,
-                                             diagnostics=False)
+                                             diagnostics=False,
+                                             val=True)
 
 
     val_dir = '/osn/SpaceNet-MOD/testing/rgb-ps-dra/300/'
@@ -185,5 +181,5 @@ def console():
                     except ValueError as e:
                         pass
     df = pandas.DataFrame(results, columns=['file_name', 'class_id', 'conf', 'xmin', 'xmax', 'ymin', 'ymax'])
-    df['class_id'] = df['class_id'].apply(lambda xx: train_dataset.class_map_inv[xx])
+    df['class_id'] = df['class_id'].apply(lambda xx: dataset_generator.class_map_inv[xx])
     df.to_csv('./' + args.name + '/' + args.outcsv)
