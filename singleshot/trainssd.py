@@ -12,6 +12,7 @@ from keras.optimizers import Adam
 from singleshot import SSD, SSDLoss
 from singleshot.util import BatchGenerator, decode_y, SSDBoxEncoder
 
+os.environ["CUDA_VISIBLE_DEVICES"] = "2,3"
 
 def console():
     parser = ArgumentParser()
@@ -25,6 +26,7 @@ def console():
     parser.add_argument('--batch_size', type=int, default=4)
     parser.add_argument('--outcsv', default='ssd_results.csv')
     parser.add_argument('--val_csv')
+    parser.add_argument('--split_ratio', type=float, default=1.0)
     parser.add_argument('train_csv', default='/osn/share/rail.csv')
     args = parser.parse_args()
 
@@ -87,7 +89,7 @@ def console():
     dataset_generator = BatchGenerator(include_classes=args.classes)
 
     dataset_generator.parse_csv(labels_path=args.train_csv,
-                            input_format=['image_name', 'xmin', 'xmax', 'ymin', 'ymax', 'class_id'], split_ratio=0.8)
+                            input_format=['image_name', 'xmin', 'xmax', 'ymin', 'ymax', 'class_id'], split_ratio=args.split_ratio)
 
     train_generator = dataset_generator.generate(batch_size=args.batch_size,
                                              train=True,

@@ -183,7 +183,7 @@ class BatchGenerator:
     def parse_csv(self,
                   labels_path=None,
                   input_format=None,
-                  split_ratio=0.7):
+                  split_ratio=1.0):
         '''
         Arguments:
             labels_path (str, optional): The filepath to a CSV file that contains one ground truth bounding box per line
@@ -277,13 +277,21 @@ class BatchGenerator:
         self.filenames, self.labels = shuffle(self.filenames, self.labels)  # Shuffle the data before we begin
 
         if split_ratio > 1.0 or split_ratio < 0:
-            split_ratio = 0.7
+            split_ratio = 1.0
 
         self.train_filenames = self.filenames[:int(len(self.filenames) * split_ratio)]
         self.val_filenames = self.filenames[int(len(self.filenames) * split_ratio):]
 
         self.train_labels = self.labels[:int(len(self.labels) * split_ratio)]
-        self.val_filenames = self.labels[int(len(self.labels) * split_ratio):]
+        self.val_labels = self.labels[int(len(self.labels) * split_ratio):]
+
+        print(len(self.val_filenames))
+        print(len(self.val_labels))
+        if len(self.val_filenames) == 0:
+            self.val_filenames = self.train_filenames
+            self.val_labels = self.train_labels
+        print(len(self.val_filenames))
+        print(len(self.val_filenames))
 
     def parse_xml(self,
                   annotations_path=None,
