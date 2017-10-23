@@ -285,13 +285,10 @@ class BatchGenerator:
         self.train_labels = self.labels[:int(len(self.labels) * split_ratio)]
         self.val_labels = self.labels[int(len(self.labels) * split_ratio):]
 
-        print(len(self.val_filenames))
-        print(len(self.val_labels))
+        # add values to val_filenames and val_labels if they are empty due to default split_ratio=1.0
         if len(self.val_filenames) == 0:
             self.val_filenames = self.train_filenames
             self.val_labels = self.train_labels
-        print(len(self.val_filenames))
-        print(len(self.val_filenames))
 
     def parse_xml(self,
                   annotations_path=None,
