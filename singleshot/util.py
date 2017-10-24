@@ -253,14 +253,16 @@ class BatchGenerator:
         for idx, row in enumerate(data):
             if current_file == '':  # If this is the first image file
                 current_file = row[0]
-                current_labels.append(row[1:])
+                self.append_label_to_list(current_labels, row[1:])
+                #current_labels.append(row[1:])
                 if len(data) == 1:  # If there is only one box in the CVS file
                     self.labels.append(np.stack(current_labels, axis=0))
                     self.filenames.append(current_file)
             else:
                 if row[0] == current_file:
                     # If this box (i.e. this line of the CSV file) belongs to the current image file
-                    current_labels.append(row[1:])
+                    self.append_label_to_list(current_labels, row[1:])
+                    # current_labels.append(row[1:])
                     if idx == len(data) - 1:  # If this is the last line of the CSV file
                         self.labels.append(np.stack(current_labels, axis=0))
                         self.filenames.append(current_file)
@@ -269,7 +271,8 @@ class BatchGenerator:
                     self.filenames.append(current_file)
                     current_labels = []
                     current_file = row[0]
-                    current_labels.append(row[1:])
+                    self.append_label_to_list(current_labels, row[1:])
+                    # current_labels.append(row[1:])
         self.count = len(self.filenames)
         # if ret:  # In case we want to return these
         #     return self.filenames, self.labels
@@ -289,6 +292,27 @@ class BatchGenerator:
         if len(self.val_filenames) == 0:
             self.val_filenames = self.train_filenames
             self.val_labels = self.train_labels
+
+    def append_label_to_list(self,
+                             current_labels=None,
+                             label=None):
+
+        '''
+        This is a helper funtion that filters out corrupted bounding box labels. It determined if the bounding box has
+        faulty data by ignoring those with either height = 0 or width = 0.
+
+        Arguments:
+            current_labels (list, optional): List of current labels, where each element is a list of ground truth
+            bounding box coordinates and class values. Defaults to `None`
+            labels (list, optional): List of ground truth bounding box coordinates and class values to be added to
+            current_labels list. Defaults to `None`
+        '''
+
+        box_w = abs(label[2] - label[1])
+        box_h = abs(label[4] - label[3])
+
+        if box_w > 0 and box_h > 0:
+            current_labels.append(label)
 
     def parse_xml(self,
                   annotations_path=None,
