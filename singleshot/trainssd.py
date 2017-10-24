@@ -35,8 +35,14 @@ def console():
     img_channels = 3  # Number of color channels of the input images
     n_classes = len(args.classes)+1 if args.classes else 2
     # Number of classes including the background class, e.g. 21 for the Pascal VOC datasets
-    scales = [args.scale] * 7 if args.scale else None
-    aspect_ratios = [[1.0]] * 6
+    scales = [0.01, 0.04, 0.07, 0.1, 0.13, 0.17, 0.5 ] #[args.scale] * 7 if args.scale else None
+    aspect_ratios = [] #[[1.0]] * 6
+    aspect_ratios.append(np.linspace(1.0/15.0,15.0,6))
+    aspect_ratios.append(np.linspace(1.0 / 12.0, 12.0, 6))
+    aspect_ratios.append(np.linspace(1.0 / 10.0, 10.0, 6))
+    aspect_ratios.append(np.linspace(1.0 / 6.0, 6.0, 6))
+    aspect_ratios.append(np.linspace(1.0 / 4.5, 4.5, 6))
+    aspect_ratios.append(np.linspace(1.0 / 4.0, 4.0, 6))
     two_boxes_for_ar1 = True
     limit_boxes = False
     variances = [0.1, 0.1, 0.2, 0.2]
