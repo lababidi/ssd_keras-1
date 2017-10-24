@@ -29,6 +29,15 @@ def console():
     parser.add_argument('csv', default='/osn/share/rail.csv')
     args = parser.parse_args()
 
+    def appent_to_aspect_ratio_list(aspect_ratios = None,
+                              max_aspect_ratio = None):
+
+        ratios = list(1 / np.linspace(1.0, max_aspect_ratio, 6))
+        ratios.reverse()
+        ratios += list(np.linspace(1.0, max_aspect_ratio, 6))[1:]
+
+        aspect_ratios.append(ratios)
+
     print(args.min_scale, args.max_scale)
     img_height = 300  # Height of the input images
     img_width = 300  # Width of the input images
@@ -37,12 +46,12 @@ def console():
     # Number of classes including the background class, e.g. 21 for the Pascal VOC datasets
     scales = [0.01, 0.04, 0.07, 0.1, 0.13, 0.17, 0.5 ] #[args.scale] * 7 if args.scale else None
     aspect_ratios = [] #[[1.0]] * 6
-    aspect_ratios.append(np.linspace(1.0/15.0,15.0,6))
-    aspect_ratios.append(np.linspace(1.0 / 12.0, 12.0, 6))
-    aspect_ratios.append(np.linspace(1.0 / 10.0, 10.0, 6))
-    aspect_ratios.append(np.linspace(1.0 / 6.0, 6.0, 6))
-    aspect_ratios.append(np.linspace(1.0 / 4.5, 4.5, 6))
-    aspect_ratios.append(np.linspace(1.0 / 4.0, 4.0, 6))
+    appent_to_aspect_ratio_list(aspect_ratios, 15.0)
+    appent_to_aspect_ratio_list(aspect_ratios, 12.0)
+    appent_to_aspect_ratio_list(aspect_ratios, 10.0)
+    appent_to_aspect_ratio_list(aspect_ratios, 6.0)
+    appent_to_aspect_ratio_list(aspect_ratios, 4.5)
+    appent_to_aspect_ratio_list(aspect_ratios, 4.0)
     two_boxes_for_ar1 = True
     limit_boxes = False
     variances = [0.1, 0.1, 0.2, 0.2]
@@ -115,7 +124,6 @@ def console():
                                          include_thresh=0.4,
                                          diagnostics=False,
                                          val=True)
-
 
     def lr_schedule(epoch):
         if epoch <= 500:

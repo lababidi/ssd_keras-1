@@ -295,7 +295,8 @@ class BatchGenerator:
 
     def append_label_to_list(self,
                              current_labels=None,
-                             label=None):
+                             label=None,
+                             bad_boxes=None):
 
         '''
         This is a helper funtion that filters out corrupted bounding box labels. It determined if the bounding box has
