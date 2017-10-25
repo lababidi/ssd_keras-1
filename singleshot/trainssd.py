@@ -29,7 +29,7 @@ def console():
     parser.add_argument('csv', default='/osn/share/rail.csv')
     args = parser.parse_args()
 
-    def appent_to_aspect_ratio_list(aspect_ratios = None,
+    def append_to_aspect_ratio_list(aspect_ratios = None,
                               max_aspect_ratio = None):
 
         ratios = list(1 / np.linspace(1.0, max_aspect_ratio, 6))
@@ -46,12 +46,12 @@ def console():
     # Number of classes including the background class, e.g. 21 for the Pascal VOC datasets
     scales = [0.01, 0.04, 0.07, 0.1, 0.13, 0.17, 0.5 ] #[args.scale] * 7 if args.scale else None
     aspect_ratios = [] #[[1.0]] * 6
-    appent_to_aspect_ratio_list(aspect_ratios, 15.0)
-    appent_to_aspect_ratio_list(aspect_ratios, 12.0)
-    appent_to_aspect_ratio_list(aspect_ratios, 10.0)
-    appent_to_aspect_ratio_list(aspect_ratios, 6.0)
-    appent_to_aspect_ratio_list(aspect_ratios, 4.5)
-    appent_to_aspect_ratio_list(aspect_ratios, 4.0)
+    append_to_aspect_ratio_list(aspect_ratios, 15.0)
+    append_to_aspect_ratio_list(aspect_ratios, 12.0)
+    append_to_aspect_ratio_list(aspect_ratios, 10.0)
+    append_to_aspect_ratio_list(aspect_ratios, 6.0)
+    append_to_aspect_ratio_list(aspect_ratios, 4.5)
+    append_to_aspect_ratio_list(aspect_ratios, 4.0)
     two_boxes_for_ar1 = True
     limit_boxes = False
     variances = [0.1, 0.1, 0.2, 0.2]
