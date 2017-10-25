@@ -255,21 +255,17 @@ class BatchGenerator:
             if current_file == '':  # If this is the first image file
                 current_file = row[0]
                 self.append_label_to_list(current_labels, row[1:], bad_boxes)
-                #current_labels.append(row[1:])
                 if len(data) == 1:  # If there is only one box in the CVS file
-                    self.labels.append(np.stack(current_labels, axis=0))
-                    self.filenames.append(current_file)
+                    self.append_entry_to_dataset(self.filenames, current_file, self.labels, current_labels)
             else:
                 if row[0] == current_file:
                     # If this box (i.e. this line of the CSV file) belongs to the current image file
                     self.append_label_to_list(current_labels, row[1:], bad_boxes)
                     # current_labels.append(row[1:])
                     if idx == len(data) - 1:  # If this is the last line of the CSV file
-                        self.labels.append(np.stack(current_labels, axis=0))
-                        self.filenames.append(current_file)
+                        self.append_entry_to_dataset(self.filenames, current_file, self.labels, current_labels)
                 else:  # If this box belongs to a new image file
-                    self.labels.append(np.stack(current_labels, axis=0))
-                    self.filenames.append(current_file)
+                    self.append_entry_to_dataset(self.filenames, current_file, self.labels, current_labels)
                     current_labels = []
                     current_file = row[0]
                     self.append_label_to_list(current_labels, row[1:], bad_boxes)
@@ -302,7 +298,7 @@ class BatchGenerator:
                              bad_boxes=None):
 
         '''
-        This is a helper funtion that filters out corrupted bounding box labels. It determined if the bounding box has
+        This is a helper function that filters out corrupted bounding box labels. It determined if the bounding box has
         faulty data by ignoring those with either height = 0 or width = 0.
 
         Arguments:
@@ -319,6 +315,32 @@ class BatchGenerator:
             current_labels.append(label)
         else:
             bad_boxes.append(label)
+
+    def append_entry_to_dataset(self,
+                                filenames = None,
+                                current_file = None,
+                                labels = None,
+                                current_labels=None):
+
+        '''
+        This is a helper function that adds an entry to the dataset if the current_file has a corresponding list of
+        labels stored in current_labels. This i to prevent the case where any given file only contains faulty
+        bounding boxes; meaning that there are were bonafide labels found in the file.
+
+        Arguments:
+            filenames (list, optional): List of files that are already part of the dataset.
+            current_file (str, optional): Current file being inspected for labels.
+            labels (list, optional): List of labels that are associated to file which are already part of the
+            dataset.
+            current_labels (list, optional): List of current labels, where each element is a list of ground truth
+            bounding box coordinates and class values. Defaults to `None`
+        '''
+
+        if len(current_labels) > 0:
+            self.labels.append(np.stack(current_labels, axis=0))
+            self.filenames.append(current_file)
+        else:
+            return
 
     def parse_xml(self,
                   annotations_path=None,
