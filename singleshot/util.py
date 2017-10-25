@@ -251,21 +251,22 @@ class BatchGenerator:
         current_file = ''  # The current image for which we're collecting the ground truth boxes
         current_labels = []  # The list where we collect all ground truth boxes for a given image
         bad_boxes = []
+        bad_files = []
         for idx, row in enumerate(data):
             if current_file == '':  # If this is the first image file
                 current_file = row[0]
                 self.append_label_to_list(current_labels, row[1:], bad_boxes)
                 if len(data) == 1:  # If there is only one box in the CVS file
-                    self.append_entry_to_dataset(self.filenames, current_file, self.labels, current_labels)
+                    self.append_entry_to_dataset(self.filenames, current_file, self.labels, current_labels, bad_files)
             else:
                 if row[0] == current_file:
                     # If this box (i.e. this line of the CSV file) belongs to the current image file
                     self.append_label_to_list(current_labels, row[1:], bad_boxes)
                     # current_labels.append(row[1:])
                     if idx == len(data) - 1:  # If this is the last line of the CSV file
-                        self.append_entry_to_dataset(self.filenames, current_file, self.labels, current_labels)
+                        self.append_entry_to_dataset(self.filenames, current_file, self.labels, current_labels, bad_files)
                 else:  # If this box belongs to a new image file
-                    self.append_entry_to_dataset(self.filenames, current_file, self.labels, current_labels)
+                    self.append_entry_to_dataset(self.filenames, current_file, self.labels, current_labels, bad_files)
                     current_labels = []
                     current_file = row[0]
                     self.append_label_to_list(current_labels, row[1:], bad_boxes)
@@ -291,6 +292,7 @@ class BatchGenerator:
             self.val_labels = self.train_labels
 
         print("Removed {} faulty bounding boxes from dataset\n".format(len(bad_boxes)))
+        print("Removed {} faulty files from dataset\n".format(len(bad_files)))
 
     def append_label_to_list(self,
                              current_labels=None,
@@ -320,7 +322,7 @@ class BatchGenerator:
                                 filenames = None,
                                 current_file = None,
                                 labels = None,
-                                current_labels=None):
+                                current_labels=None, bad_files = None):
 
         '''
         This is a helper function that adds an entry to the dataset if the current_file has a corresponding list of
@@ -340,7 +342,7 @@ class BatchGenerator:
             self.labels.append(np.stack(current_labels, axis=0))
             self.filenames.append(current_file)
         else:
-            return
+            bad_files.append(current_file)
 
     def parse_xml(self,
                   annotations_path=None,
