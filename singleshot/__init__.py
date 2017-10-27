@@ -1,3 +1,5 @@
+import os
+
 import numpy as np
 import tensorflow as tf
 from keras import Input, backend as K
@@ -6,9 +8,12 @@ from keras.layers import Lambda, Conv2D, MaxPooling2D, Reshape, Concatenate, Act
 
 from singleshot.util import convert_coordinates
 
+w_root = '/osn/share/vgg/'
+if not os.path.exists(w_root):
+    w_root = 'vgg/'
 
 def get_w(n):
-    return [np.load('/osn/share/vgg/{}_0.npy'.format(n)), np.load('/osn/share/vgg/{}_1.npy'.format(n))]
+    return [np.load(w_root + '{}_0.npy'.format(n)), np.load(w_root + '{}_1.npy'.format(n))]
 
 
 def SSD(image_size,
