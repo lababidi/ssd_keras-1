@@ -20,6 +20,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
 import numpy as np
+import pandas as pd
 import cv2
 import random
 from sklearn.utils import shuffle
@@ -28,6 +29,8 @@ from PIL import Image
 import csv
 import os
 from bs4 import BeautifulSoup
+
+import rasterio
 
 
 # Image processing functions used by the generator to perform the following image manipulations:
@@ -183,7 +186,8 @@ class BatchGenerator:
     def parse_csv(self,
                   labels_path=None,
                   input_format=None,
-                  split_ratio=1.0):
+                  split_ratio=1.0,
+                  checkpoints_path=None):
         '''
         Arguments:
             labels_path (str, optional): The filepath to a CSV file that contains one ground truth bounding box per line
@@ -293,6 +297,11 @@ class BatchGenerator:
 
         print("Removed {} faulty bounding boxes from dataset\n".format(len(bad_boxes)))
         print("Removed {} faulty files from dataset\n".format(len(bad_files)))
+        
+        val_image_filenames_df = pd.DataFrame(self.val_filenames)
+        val_image_filenames_df.to_csv(checkpoints_path + '/val_filenames.csv')
+        
+        print('Saved validation filenames')
 
     def append_label_to_list(self,
                              current_labels=None,
@@ -461,6 +470,8 @@ class BatchGenerator:
                  crop=False,
                  resize=False,
                  gray=False,
+                 gray_to_rgb=False,
+                 multipectral_to_rgb = False,
                  limit_boxes=True,
                  include_thresh=0.3,
                  diagnostics=False,
@@ -528,7 +539,9 @@ class BatchGenerator:
             resize (tuple, optional): `False` or a tuple of 2 integers for the desired output
                 size of the images in pixels. The expected format is `(width, height)`.
                 The box coordinates are adjusted accordingly. Note: Resizing happens after cropping.
-            gray (bool, optional): If `True`, converts the images to grayscale.
+            rgb_to_gray (bool, optional): If `True`, converts the images to grayscale assuming they are in RGB.
+            gray_to_rgb (bool, optional): If `True`, converts the images to RGB assuming they are grayscale.
+            multispectral_to_rgb (bool, optional): If `True`, converts the images to RGB assuming they are 8-band.
             limit_boxes (bool, optional): If `True`, limits box coordinates to stay within image boundaries
                 post any transformation. This should always be set to `True`, even if you set `include_thresh`
                 to 0. I don't even know why I made this an option. If this is set to `False`, you could
@@ -574,8 +587,12 @@ class BatchGenerator:
                 current = 0
 
             for filename in filenames[current:current + batch_size]:
-                with Image.open('{}'.format(filename)) as img:
-                    batch_X.append(np.array(img))
+                with rasterio.open('{}'.format(filename)) as img:
+                #with Image.open('{}'.format(filename)) as img:
+                    #batch_X.append(np.array(img))
+                    img = np.array(img.read())
+                    img = img.transpose([1, 2, 0])
+                    batch_X.append(img)
             batch_y = deepcopy(labels[current:current + batch_size])
 
             this_filenames = filenames[
@@ -593,7 +610,7 @@ class BatchGenerator:
             batch_items_to_remove = []  # In case we need to remove any images from the batch because of failed random cropping, store their indices in this list
 
             for i in range(len(batch_X)):
-
+  
                 img_height, img_width, ch = batch_X[i].shape
                 batch_y[i] = np.array(batch_y[
                                           i])  # Convert labels into an array (in case it isn't one already), otherwise the indexing below breaks
@@ -881,9 +898,15 @@ class BatchGenerator:
                         np.int)
                     img_width, img_height = resize  # Updating these at this point is unnecessary, but it's one fewer source of error if this method gets expanded in the future
 
-                if gray:
+                if rgb_to_gray and not gray_to_rgb and not multipectral_to_rgb:
                     batch_X[i] = np.expand_dims(cv2.cvtColor(batch_X[i], cv2.COLOR_RGB2GRAY), 3)
 
+                if gray_to_rgb and not rgb_to_gray and not multipectral_to_rgb:
+                    batch_X[i] = cv2.cvtColor(batch_X[i], cv2.COLOR_BayerGR2RGB)
+                    
+                if multipectral_to_rgb and not rgb_to_gray and not gray_to_rgb:
+                    batch_X[i] = batch_X[i][:,:,:3]
+                
             # If any batch items need to be removed because of failed random cropping, remove them now.
             for j in sorted(batch_items_to_remove, reverse=True):
                 batch_X.pop(j)
@@ -1109,7 +1132,7 @@ class BatchGenerator:
 
             if gray:
                 image = np.expand_dims(cv2.cvtColor(image, cv2.COLOR_RGB2GRAY), 3)
-
+                
             if diagnostics:
                 processed_images.append(image)
                 processed_labels.append(targets)

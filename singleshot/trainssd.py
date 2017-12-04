@@ -12,7 +12,7 @@ from keras.optimizers import Adam
 from singleshot import SSD, SSDLoss
 from singleshot.util import BatchGenerator, decode_y, SSDBoxEncoder
 
-os.environ["CUDA_VISIBLE_DEVICES"] = "2,3"
+os.environ["CUDA_VISIBLE_DEVICES"] = "2"
 
 def console():
     parser = ArgumentParser()
@@ -44,14 +44,16 @@ def console():
     img_channels = 3  # Number of color channels of the input images
     n_classes = len(args.classes)+1 if args.classes else 2
     # Number of classes including the background class, e.g. 21 for the Pascal VOC datasets
-    scales = [0.01, 0.04, 0.07, 0.1, 0.13, 0.17, 0.5 ] #[args.scale] * 7 if args.scale else None
-    aspect_ratios = [] #[[1.0]] * 6
-    append_to_aspect_ratio_list(aspect_ratios, 15.0)
-    append_to_aspect_ratio_list(aspect_ratios, 12.0)
-    append_to_aspect_ratio_list(aspect_ratios, 10.0)
-    append_to_aspect_ratio_list(aspect_ratios, 6.0)
-    append_to_aspect_ratio_list(aspect_ratios, 4.5)
-    append_to_aspect_ratio_list(aspect_ratios, 4.0)
+    #scales = [0.01, 0.04, 0.07, 0.1, 0.13, 0.17, 0.5 ] #[args.scale] * 7 if args.scale else None
+    scales = [args.scale] * 7 if args.scale else None
+    aspect_ratios = [[1.0]] * 6
+    #aspect_ratios = [] #[[1.0]] * 6
+    #append_to_aspect_ratio_list(aspect_ratios, 15.0)
+    #append_to_aspect_ratio_list(aspect_ratios, 12.0)
+    #append_to_aspect_ratio_list(aspect_ratios, 10.0)
+    #append_to_aspect_ratio_list(aspect_ratios, 6.0)
+    #append_to_aspect_ratio_list(aspect_ratios, 4.5)
+    #append_to_aspect_ratio_list(aspect_ratios, 4.0)
     two_boxes_for_ar1 = True
     limit_boxes = False
     variances = [0.1, 0.1, 0.2, 0.2]
@@ -99,15 +101,23 @@ def console():
 
     dataset_generator = BatchGenerator(include_classes=args.classes)
 
+    if not os.path.exists(args.name):
+        os.mkdir(args.name)
+        
     dataset_generator.parse_csv(labels_path=args.csv,
-                            input_format=['image_name', 'xmin', 'xmax', 'ymin', 'ymax', 'class_id'], split_ratio=args.split_ratio)
+                                input_format=['image_name', 'xmin', 'xmax', 'ymin', 'ymax', 'class_id'], 
+                                split_ratio=args.split_ratio, 
+                                checkpoints_path=args.name)
 
     train_generator = dataset_generator.generate(batch_size=args.batch_size,
                                              train=True,
                                              ssd_box_encoder=ssd_box_encoder,
                                              limit_boxes=True,  # While the anchor boxes are not being clipped,
                                              include_thresh=0.4,
-                                             diagnostics=False)
+                                             diagnostics=False,
+                                             rgb_to_gray = False
+                                             gray_to_rgb=False,
+                                             multipectral_to_rgb = True)
 
     val_generator = dataset_generator.generate(batch_size=args.batch_size,
                                          train=True,
@@ -119,20 +129,20 @@ def console():
                                          scale=False,
                                          crop=False,
                                          resize=False,
-                                         gray=False,
                                          limit_boxes=True,
                                          include_thresh=0.4,
                                          diagnostics=False,
-                                         val=True)
+                                         val=True,
+                                         rgb_to_gray=False,
+                                         gray_to_rgb=False,
+                                         multipectral_to_rgb = True)
 
     def lr_schedule(epoch):
         if epoch <= 500:
-            return 0.001
-        else:
+            #return 0.01
             return 0.0001
-
-    if not os.path.exists(args.name):
-        os.mkdir(args.name)
+        else:
+            return 0.00001
 
     history = model.fit_generator(generator=train_generator,
                                   steps_per_epoch=ceil(dataset_generator.count / args.batch_size),
@@ -163,11 +173,13 @@ def console():
                                              scale=False,
                                              crop=False,
                                              resize=False,
-                                             gray=False,
                                              limit_boxes=True,
                                              include_thresh=0.4,
                                              diagnostics=False,
-                                             val=True)
+                                             val=True,
+                                             rgb_to_gray=False,
+                                             gray_to_rgb=False,
+                                             multipectral_to_rgb = True)
 
 
     val_dir = '/osn/SpaceNet-MOD/testing/rgb-ps-dra/300/'
