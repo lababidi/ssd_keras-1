@@ -115,9 +115,9 @@ def console():
                                              limit_boxes=True,  # While the anchor boxes are not being clipped,
                                              include_thresh=0.4,
                                              diagnostics=False,
-                                             rgb_to_gray = False
+                                             rgb_to_gray =False,
                                              gray_to_rgb=False,
-                                             multipectral_to_rgb = True)
+                                             multipectral_to_rgb=True)
 
     val_generator = dataset_generator.generate(batch_size=args.batch_size,
                                          train=True,
@@ -135,7 +135,7 @@ def console():
                                          val=True,
                                          rgb_to_gray=False,
                                          gray_to_rgb=False,
-                                         multipectral_to_rgb = True)
+                                         multipectral_to_rgb=True)
 
     def lr_schedule(epoch):
         if epoch <= 500:
@@ -179,7 +179,7 @@ def console():
                                              val=True,
                                              rgb_to_gray=False,
                                              gray_to_rgb=False,
-                                             multipectral_to_rgb = True)
+                                             multipectral_to_rgb=True)
 
 
     val_dir = '/osn/SpaceNet-MOD/testing/rgb-ps-dra/300/'
