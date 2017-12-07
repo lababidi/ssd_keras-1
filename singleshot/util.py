@@ -469,9 +469,9 @@ class BatchGenerator:
                  random_crop=False,
                  crop=False,
                  resize=False,
-                 gray=False,
+                 rgb_to_gray=False,
                  gray_to_rgb=False,
-                 multipectral_to_rgb = False,
+                 multispectral_to_rgb = False,
                  limit_boxes=True,
                  include_thresh=0.3,
                  diagnostics=False,
@@ -898,14 +898,14 @@ class BatchGenerator:
                         np.int)
                     img_width, img_height = resize  # Updating these at this point is unnecessary, but it's one fewer source of error if this method gets expanded in the future
 
-                if rgb_to_gray and not gray_to_rgb and not multipectral_to_rgb:
+                if rgb_to_gray and not gray_to_rgb and not multispectral_to_rgb:
                     batch_X[i] = np.expand_dims(cv2.cvtColor(batch_X[i], cv2.COLOR_RGB2GRAY), 3)
 
-                elif gray_to_rgb and not rgb_to_gray and not multipectral_to_rgb:
+                elif gray_to_rgb and not rgb_to_gray and not multispectral_to_rgb:
                     batch_X[i] = cv2.cvtColor(batch_X[i], cv2.COLOR_BayerGR2RGB)
                     
-                elif multipectral_to_rgb and not rgb_to_gray and not gray_to_rgb:
-                    batch_X[i] = batch_X[i][:,:,np.r_[-4:-5:-1,-6:-8:-1]]
+                elif multispectral_to_rgb and not rgb_to_gray and not gray_to_rgb:
+                    batch_X[i] = batch_X[i][:, :, np.r_[-4:-5:-1, -6:-8:-1]]
                 
             # If any batch items need to be removed because of failed random cropping, remove them now.
             for j in sorted(batch_items_to_remove, reverse=True):

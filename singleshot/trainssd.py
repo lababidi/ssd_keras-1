@@ -12,8 +12,6 @@ from keras.optimizers import Adam
 from singleshot import SSD, SSDLoss
 from singleshot.util import BatchGenerator, decode_y, SSDBoxEncoder
 
-os.environ["CUDA_VISIBLE_DEVICES"] = "2"
-
 def console():
     parser = ArgumentParser()
     parser.add_argument('--model')
@@ -23,11 +21,17 @@ def console():
     parser.add_argument('--min_scale', type=float)
     parser.add_argument('--max_scale', type=float)
     parser.add_argument('--epochs', type=int, default=1000)
+    parser.add_argument('--rgb_to_gray', type=bool, default=False)
+    parser.add_argument('--gray_to_rgb', type=bool, default=False)
+    parser.add_argument('--multispectral_to_rgb', type=bool, default=False)
     parser.add_argument('--batch_size', type=int, default=4)
     parser.add_argument('--outcsv', default='ssd_results.csv')
     parser.add_argument('--split_ratio', type=float, default=1.0)
+    parser.add_argument('--gpus', default='0,1,2,3')
     parser.add_argument('csv', default='/osn/share/rail.csv')
     args = parser.parse_args()
+
+    os.environ["CUDA_VISIBLE_DEVICES"] = args.gpus
 
     def append_to_aspect_ratio_list(aspect_ratios = None,
                               max_aspect_ratio = None):
@@ -115,9 +119,9 @@ def console():
                                              limit_boxes=True,  # While the anchor boxes are not being clipped,
                                              include_thresh=0.4,
                                              diagnostics=False,
-                                             rgb_to_gray =False,
-                                             gray_to_rgb=False,
-                                             multipectral_to_rgb=True)
+                                             rgb_to_gray=args.rgb_to_gray,
+                                             gray_to_rgb=args.gray_to_rgb,
+                                             multispectral_to_rgb=args.multispectral_to_rgb)
 
     val_generator = dataset_generator.generate(batch_size=args.batch_size,
                                          train=True,
@@ -133,9 +137,9 @@ def console():
                                          include_thresh=0.4,
                                          diagnostics=False,
                                          val=True,
-                                         rgb_to_gray=False,
-                                         gray_to_rgb=False,
-                                         multipectral_to_rgb=True)
+                                         rgb_to_gray=args.rgb_to_gray,
+                                         gray_to_rgb=args.gray_to_rgb,
+                                         multispectral_to_rgb=args.multispectral_to_rgb)
 
     def lr_schedule(epoch):
         if epoch <= 500:
