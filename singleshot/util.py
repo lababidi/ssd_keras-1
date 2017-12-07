@@ -20,6 +20,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
 import numpy as np
+import pandas as pd
 import cv2
 import random
 from sklearn.utils import shuffle
@@ -28,6 +29,8 @@ from PIL import Image
 import csv
 import os
 from bs4 import BeautifulSoup
+
+import rasterio
 
 
 # Image processing functions used by the generator to perform the following image manipulations:
@@ -183,7 +186,8 @@ class BatchGenerator:
     def parse_csv(self,
                   labels_path=None,
                   input_format=None,
-                  ret=False):
+                  split_ratio=1.0,
+                  checkpoints_path=None):
         '''
         Arguments:
             labels_path (str, optional): The filepath to a CSV file that contains one ground truth bounding box per line
@@ -250,29 +254,104 @@ class BatchGenerator:
 
         current_file = ''  # The current image for which we're collecting the ground truth boxes
         current_labels = []  # The list where we collect all ground truth boxes for a given image
+        bad_boxes = []
+        bad_files = []
         for idx, row in enumerate(data):
             if current_file == '':  # If this is the first image file
                 current_file = row[0]
-                current_labels.append(row[1:])
+                self.append_label_to_list(current_labels, row[1:], bad_boxes)
                 if len(data) == 1:  # If there is only one box in the CVS file
-                    self.labels.append(np.stack(current_labels, axis=0))
-                    self.filenames.append(current_file)
+                    self.append_entry_to_dataset(self.filenames, current_file, self.labels, current_labels, bad_files)
             else:
                 if row[0] == current_file:
                     # If this box (i.e. this line of the CSV file) belongs to the current image file
-                    current_labels.append(row[1:])
+                    self.append_label_to_list(current_labels, row[1:], bad_boxes)
+                    # current_labels.append(row[1:])
                     if idx == len(data) - 1:  # If this is the last line of the CSV file
-                        self.labels.append(np.stack(current_labels, axis=0))
-                        self.filenames.append(current_file)
+                        self.append_entry_to_dataset(self.filenames, current_file, self.labels, current_labels, bad_files)
                 else:  # If this box belongs to a new image file
-                    self.labels.append(np.stack(current_labels, axis=0))
-                    self.filenames.append(current_file)
+                    self.append_entry_to_dataset(self.filenames, current_file, self.labels, current_labels, bad_files)
                     current_labels = []
                     current_file = row[0]
-                    current_labels.append(row[1:])
+                    self.append_label_to_list(current_labels, row[1:], bad_boxes)
+                    # current_labels.append(row[1:])
         self.count = len(self.filenames)
-        if ret:  # In case we want to return these
-            return self.filenames, self.labels
+        # if ret:  # In case we want to return these
+        #     return self.filenames, self.labels
+
+        self.filenames, self.labels = shuffle(self.filenames, self.labels)  # Shuffle the data before we begin
+
+        if split_ratio > 1.0 or split_ratio < 0:
+            split_ratio = 1.0
+
+        self.train_filenames = self.filenames[:int(len(self.filenames) * split_ratio)]
+        self.val_filenames = self.filenames[int(len(self.filenames) * split_ratio):]
+
+        self.train_labels = self.labels[:int(len(self.labels) * split_ratio)]
+        self.val_labels = self.labels[int(len(self.labels) * split_ratio):]
+
+        # add values to val_filenames and val_labels if they are empty due to default split_ratio=1.0
+        if len(self.val_filenames) == 0:
+            self.val_filenames = self.train_filenames
+            self.val_labels = self.train_labels
+
+        print("Removed {} faulty bounding boxes from dataset\n".format(len(bad_boxes)))
+        print("Removed {} faulty files from dataset\n".format(len(bad_files)))
+        
+        val_image_filenames_df = pd.DataFrame(self.val_filenames)
+        val_image_filenames_df.to_csv(checkpoints_path + '/val_filenames.csv')
+        
+        print('Saved validation filenames')
+
+    def append_label_to_list(self,
+                             current_labels=None,
+                             label=None,
+                             bad_boxes=None):
+
+        '''
+        This is a helper function that filters out corrupted bounding box labels. It determined if the bounding box has
+        faulty data by ignoring those with either height = 0 or width = 0.
+
+        Arguments:
+            current_labels (list, optional): List of current labels, where each element is a list of ground truth
+            bounding box coordinates and class values. Defaults to `None`
+            labels (list, optional): List of ground truth bounding box coordinates and class values to be added to
+            current_labels list. Defaults to `None`
+        '''
+
+        box_w = abs(label[2] - label[1])
+        box_h = abs(label[4] - label[3])
+
+        if box_w > 0 and box_h > 0:
+            current_labels.append(label)
+        else:
+            bad_boxes.append(label)
+
+    def append_entry_to_dataset(self,
+                                filenames = None,
+                                current_file = None,
+                                labels = None,
+                                current_labels=None, bad_files = None):
+
+        '''
+        This is a helper function that adds an entry to the dataset if the current_file has a corresponding list of
+        labels stored in current_labels. This i to prevent the case where any given file only contains faulty
+        bounding boxes; meaning that there are were bonafide labels found in the file.
+
+        Arguments:
+            filenames (list, optional): List of files that are already part of the dataset.
+            current_file (str, optional): Current file being inspected for labels.
+            labels (list, optional): List of labels that are associated to file which are already part of the
+            dataset.
+            current_labels (list, optional): List of current labels, where each element is a list of ground truth
+            bounding box coordinates and class values. Defaults to `None`
+        '''
+
+        if len(current_labels) > 0:
+            self.labels.append(np.stack(current_labels, axis=0))
+            self.filenames.append(current_file)
+        else:
+            bad_files.append(current_file)
 
     def parse_xml(self,
                   annotations_path=None,
@@ -391,9 +470,12 @@ class BatchGenerator:
                  crop=False,
                  resize=False,
                  gray=False,
+                 gray_to_rgb=False,
+                 multipectral_to_rgb = False,
                  limit_boxes=True,
                  include_thresh=0.3,
-                 diagnostics=False):
+                 diagnostics=False,
+                 val=False):
         '''
         Generate batches of samples and corresponding labels indefinitely from
         lists of filenames and labels.
@@ -457,7 +539,9 @@ class BatchGenerator:
             resize (tuple, optional): `False` or a tuple of 2 integers for the desired output
                 size of the images in pixels. The expected format is `(width, height)`.
                 The box coordinates are adjusted accordingly. Note: Resizing happens after cropping.
-            gray (bool, optional): If `True`, converts the images to grayscale.
+            rgb_to_gray (bool, optional): If `True`, converts the images to grayscale assuming they are in RGB.
+            gray_to_rgb (bool, optional): If `True`, converts the images to RGB assuming they are grayscale.
+            multispectral_to_rgb (bool, optional): If `True`, converts the images to RGB assuming they are 8-band.
             limit_boxes (bool, optional): If `True`, limits box coordinates to stay within image boundaries
                 post any transformation. This should always be set to `True`, even if you set `include_thresh`
                 to 0. I don't even know why I made this an option. If this is set to `False`, you could
@@ -480,7 +564,11 @@ class BatchGenerator:
             of the labels is according to the `box_output_format` that was specified in the constructor.
         '''
 
-        self.filenames, self.labels = shuffle(self.filenames, self.labels)  # Shuffle the data before we begin
+        if not val:
+            filenames, labels = shuffle(self.train_filenames, self.train_labels) # Shuffle the data before we begin
+        else:
+            filenames, labels = shuffle(self.val_filenames, self.val_labels)  # Shuffle the data before we begin
+
         current = 0
 
         # Find out the indices of the box coordinates in the label data
@@ -494,16 +582,20 @@ class BatchGenerator:
             batch_X, batch_y = [], []
 
             # Shuffle the data after each complete pass
-            if current >= len(self.filenames):
-                self.filenames, self.labels = shuffle(self.filenames, self.labels)
+            if current >= len(filenames):
+                filenames, labels = shuffle(filenames, labels)
                 current = 0
 
-            for filename in self.filenames[current:current + batch_size]:
-                with Image.open('{}'.format(filename)) as img:
-                    batch_X.append(np.array(img))
-            batch_y = deepcopy(self.labels[current:current + batch_size])
+            for filename in filenames[current:current + batch_size]:
+                with rasterio.open('{}'.format(filename)) as img:
+                #with Image.open('{}'.format(filename)) as img:
+                    #batch_X.append(np.array(img))
+                    img = np.array(img.read())
+                    img = img.transpose([1, 2, 0])
+                    batch_X.append(img)
+            batch_y = deepcopy(labels[current:current + batch_size])
 
-            this_filenames = self.filenames[
+            this_filenames = filenames[
                              current:current + batch_size]  # The filenames of the files in the current batch
 
             if diagnostics:
@@ -518,7 +610,7 @@ class BatchGenerator:
             batch_items_to_remove = []  # In case we need to remove any images from the batch because of failed random cropping, store their indices in this list
 
             for i in range(len(batch_X)):
-
+  
                 img_height, img_width, ch = batch_X[i].shape
                 batch_y[i] = np.array(batch_y[
                                           i])  # Convert labels into an array (in case it isn't one already), otherwise the indexing below breaks
@@ -806,9 +898,15 @@ class BatchGenerator:
                         np.int)
                     img_width, img_height = resize  # Updating these at this point is unnecessary, but it's one fewer source of error if this method gets expanded in the future
 
-                if gray:
+                if rgb_to_gray and not gray_to_rgb and not multipectral_to_rgb:
                     batch_X[i] = np.expand_dims(cv2.cvtColor(batch_X[i], cv2.COLOR_RGB2GRAY), 3)
 
+                elif gray_to_rgb and not rgb_to_gray and not multipectral_to_rgb:
+                    batch_X[i] = cv2.cvtColor(batch_X[i], cv2.COLOR_BayerGR2RGB)
+                    
+                elif multipectral_to_rgb and not rgb_to_gray and not gray_to_rgb:
+                    batch_X[i] = batch_X[i][:,:,np.r_[-4:-5:-1,-6:-8:-1]]
+                
             # If any batch items need to be removed because of failed random cropping, remove them now.
             for j in sorted(batch_items_to_remove, reverse=True):
                 batch_X.pop(j)
@@ -1034,7 +1132,7 @@ class BatchGenerator:
 
             if gray:
                 image = np.expand_dims(cv2.cvtColor(image, cv2.COLOR_RGB2GRAY), 3)
-
+                
             if diagnostics:
                 processed_images.append(image)
                 processed_labels.append(targets)

@@ -12,6 +12,7 @@ from keras.optimizers import Adam
 from singleshot import SSD, SSDLoss
 from singleshot.util import BatchGenerator, decode_y, SSDBoxEncoder
 
+os.environ["CUDA_VISIBLE_DEVICES"] = "2"
 
 def console():
     parser = ArgumentParser()
@@ -24,12 +25,18 @@ def console():
     parser.add_argument('--epochs', type=int, default=1000)
     parser.add_argument('--batch_size', type=int, default=4)
     parser.add_argument('--outcsv', default='ssd_results.csv')
-    parser.add_argument('--val_csv')
-    parser.add_argument('train_csv', default='/osn/share/rail.csv')
+    parser.add_argument('--split_ratio', type=float, default=1.0)
+    parser.add_argument('csv', default='/osn/share/rail.csv')
     args = parser.parse_args()
 
-    if args.val_csv is None:
-        args.val_csv = args.train_csv
+    def append_to_aspect_ratio_list(aspect_ratios = None,
+                              max_aspect_ratio = None):
+
+        ratios = list(1 / np.linspace(1.0, max_aspect_ratio, 6))
+        ratios.reverse()
+        ratios += list(np.linspace(1.0, max_aspect_ratio, 6))[1:]
+
+        aspect_ratios.append(ratios)
 
     print(args.min_scale, args.max_scale)
     img_height = 300  # Height of the input images
@@ -37,8 +44,16 @@ def console():
     img_channels = 3  # Number of color channels of the input images
     n_classes = len(args.classes)+1 if args.classes else 2
     # Number of classes including the background class, e.g. 21 for the Pascal VOC datasets
+    #scales = [0.01, 0.04, 0.07, 0.1, 0.13, 0.17, 0.5 ] #[args.scale] * 7 if args.scale else None
     scales = [args.scale] * 7 if args.scale else None
     aspect_ratios = [[1.0]] * 6
+    #aspect_ratios = [] #[[1.0]] * 6
+    #append_to_aspect_ratio_list(aspect_ratios, 15.0)
+    #append_to_aspect_ratio_list(aspect_ratios, 12.0)
+    #append_to_aspect_ratio_list(aspect_ratios, 10.0)
+    #append_to_aspect_ratio_list(aspect_ratios, 6.0)
+    #append_to_aspect_ratio_list(aspect_ratios, 4.5)
+    #append_to_aspect_ratio_list(aspect_ratios, 4.0)
     two_boxes_for_ar1 = True
     limit_boxes = False
     variances = [0.1, 0.1, 0.2, 0.2]
@@ -84,25 +99,27 @@ def console():
                                     normalize_coords=normalize_coords)
 
 
-    train_dataset = BatchGenerator(include_classes=args.classes)
+    dataset_generator = BatchGenerator(include_classes=args.classes)
 
-    train_dataset.parse_csv(labels_path=args.train_csv,
-                            input_format=['image_name', 'xmin', 'xmax', 'ymin', 'ymax', 'class_id'])
+    if not os.path.exists(args.name):
+        os.mkdir(args.name)
+        
+    dataset_generator.parse_csv(labels_path=args.csv,
+                                input_format=['image_name', 'xmin', 'xmax', 'ymin', 'ymax', 'class_id'], 
+                                split_ratio=args.split_ratio, 
+                                checkpoints_path=args.name)
 
-    train_generator = train_dataset.generate(batch_size=args.batch_size,
+    train_generator = dataset_generator.generate(batch_size=args.batch_size,
                                              train=True,
                                              ssd_box_encoder=ssd_box_encoder,
                                              limit_boxes=True,  # While the anchor boxes are not being clipped,
                                              include_thresh=0.4,
-                                             diagnostics=False)
+                                             diagnostics=False,
+                                             rgb_to_gray = False
+                                             gray_to_rgb=False,
+                                             multipectral_to_rgb = True)
 
-
-    val_dataset = BatchGenerator(include_classes=args.classes)
-
-    val_dataset.parse_csv(labels_path=args.val_csv,
-                          input_format=['image_name', 'xmin', 'xmax', 'ymin', 'ymax', 'class_id'])
-
-    val_generator = val_dataset.generate(batch_size=args.batch_size,
+    val_generator = dataset_generator.generate(batch_size=args.batch_size,
                                          train=True,
                                          ssd_box_encoder=ssd_box_encoder,
                                          equalize=False,
@@ -112,23 +129,23 @@ def console():
                                          scale=False,
                                          crop=False,
                                          resize=False,
-                                         gray=False,
                                          limit_boxes=True,
                                          include_thresh=0.4,
-                                         diagnostics=False)
-
+                                         diagnostics=False,
+                                         val=True,
+                                         rgb_to_gray=False,
+                                         gray_to_rgb=False,
+                                         multipectral_to_rgb = True)
 
     def lr_schedule(epoch):
         if epoch <= 500:
-            return 0.001
-        else:
+            #return 0.01
             return 0.0001
-
-    if not os.path.exists(args.name):
-        os.mkdir(args.name)
+        else:
+            return 0.00001
 
     history = model.fit_generator(generator=train_generator,
-                                  steps_per_epoch=ceil(train_dataset.count / args.batch_size),
+                                  steps_per_epoch=ceil(dataset_generator.count / args.batch_size),
                                   epochs=args.epochs,
                                   callbacks=[ModelCheckpoint('./' + args.name + '/epoch{epoch:04d}_loss{loss:.4f}.h5',
                                                              monitor='val_loss',
@@ -140,14 +157,14 @@ def console():
                                              LearningRateScheduler(lr_schedule),
                                              ],
                                   validation_data=val_generator,
-                                  validation_steps=ceil(val_dataset.count / args.batch_size))
+                                  validation_steps=ceil(dataset_generator.count / args.batch_size))
 
     model.save('./' + args.name + '/{}.h5'.format(args.name))
     model.save_weights('./' + args.name + '/{}_weights.h5'.format(args.name))
 
     print("Model and weights saved as {}[_weights].h5".format(args.name))
 
-    predict_generator = val_dataset.generate(batch_size=1,
+    predict_generator = dataset_generator.generate(batch_size=1,
                                              train=False,
                                              equalize=False,
                                              brightness=False,
@@ -156,10 +173,13 @@ def console():
                                              scale=False,
                                              crop=False,
                                              resize=False,
-                                             gray=False,
                                              limit_boxes=True,
                                              include_thresh=0.4,
-                                             diagnostics=False)
+                                             diagnostics=False,
+                                             val=True,
+                                             rgb_to_gray=False,
+                                             gray_to_rgb=False,
+                                             multipectral_to_rgb = True)
 
 
     val_dir = '/osn/SpaceNet-MOD/testing/rgb-ps-dra/300/'
@@ -185,5 +205,5 @@ def console():
                     except ValueError as e:
                         pass
     df = pandas.DataFrame(results, columns=['file_name', 'class_id', 'conf', 'xmin', 'xmax', 'ymin', 'ymax'])
-    df['class_id'] = df['class_id'].apply(lambda xx: train_dataset.class_map_inv[xx])
+    df['class_id'] = df['class_id'].apply(lambda xx: dataset_generator.class_map_inv[xx])
     df.to_csv('./' + args.name + '/' + args.outcsv)
