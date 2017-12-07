@@ -901,11 +901,11 @@ class BatchGenerator:
                 if rgb_to_gray and not gray_to_rgb and not multipectral_to_rgb:
                     batch_X[i] = np.expand_dims(cv2.cvtColor(batch_X[i], cv2.COLOR_RGB2GRAY), 3)
 
-                if gray_to_rgb and not rgb_to_gray and not multipectral_to_rgb:
+                elif gray_to_rgb and not rgb_to_gray and not multipectral_to_rgb:
                     batch_X[i] = cv2.cvtColor(batch_X[i], cv2.COLOR_BayerGR2RGB)
                     
-                if multipectral_to_rgb and not rgb_to_gray and not gray_to_rgb:
-                    batch_X[i] = batch_X[i][:,:,:3]
+                elif multipectral_to_rgb and not rgb_to_gray and not gray_to_rgb:
+                    batch_X[i] = batch_X[i][:,:,np.r_[-4:-5:-1,-6:-8:-1]]
                 
             # If any batch items need to be removed because of failed random cropping, remove them now.
             for j in sorted(batch_items_to_remove, reverse=True):
