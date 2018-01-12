@@ -41,7 +41,7 @@ import rasterio
 # - Histogram contrast equalization
 
 def _translate(image, horizontal=(0, 40), vertical=(0, 10)):
-    '''
+    """
     Randomly translate the input image horizontally and vertically.
 
     Arguments:
@@ -53,7 +53,7 @@ def _translate(image, horizontal=(0, 40), vertical=(0, 10)):
 
     Returns:
         The translated image and the horzontal and vertical shift values.
-    '''
+    """
     rows, cols, ch = image.shape
 
     x = np.random.randint(horizontal[0], horizontal[1] + 1)
@@ -66,9 +66,9 @@ def _translate(image, horizontal=(0, 40), vertical=(0, 10)):
 
 
 def _flip(image, orientation='horizontal'):
-    '''
+    """
     Flip the input image horizontally or vertically.
-    '''
+    """
     if orientation == 'horizontal':
         return cv2.flip(image, 1)
     else:
@@ -76,13 +76,13 @@ def _flip(image, orientation='horizontal'):
 
 
 def _scale(image, min=0.9, max=1.1):
-    '''
+    """
     Scale the input image by a random factor picked from a uniform distribution
     over [min, max].
 
     Returns:
         The scaled image, the associated warp matrix, and the scaling value.
-    '''
+    """
 
     rows, cols, ch = image.shape
 
@@ -94,11 +94,11 @@ def _scale(image, min=0.9, max=1.1):
 
 
 def _brightness(image, min=0.5, max=2.0):
-    '''
+    """
     Randomly change the brightness of the input image.
 
     Protected against overflow.
-    '''
+    """
     hsv = cv2.cvtColor(image, cv2.COLOR_RGB2HSV)
 
     random_br = np.random.uniform(min, max)
@@ -114,11 +114,11 @@ def _brightness(image, min=0.5, max=2.0):
 
 
 def histogram_eq(image):
-    '''
+    """
     Perform histogram equalization on the input image.
 
     See https://en.wikipedia.org/wiki/Histogram_equalization.
-    '''
+    """
 
     image1 = np.copy(image)
 
@@ -1250,7 +1250,7 @@ def convert_coordinates(tensor, start_index, conversion='minmax2centroids'):
 
 
 def convert_coordinates2(tensor, start_index, conversion='minmax2centroids'):
-    '''
+    """
     A pure matrix multiplication implementation of `convert_coordinates()`.
 
     Although elegant, it turns out to be marginally slower on average than
@@ -1258,7 +1258,7 @@ def convert_coordinates2(tensor, start_index, conversion='minmax2centroids'):
     multiplicative inverse.
 
     For details please refer to the documentation of `convert_coordinates()`.
-    '''
+    """
     ind = start_index
     tensor1 = np.copy(tensor).astype(np.float)
     if conversion == 'minmax2centroids':
@@ -1280,7 +1280,7 @@ def convert_coordinates2(tensor, start_index, conversion='minmax2centroids'):
 
 
 def greedy_nms(y_pred_decoded, iou_threshold=0.45, coords='minmax'):
-    '''
+    """
     Perform greedy non-maximum suppression on the input boxes.
 
     Greedy NMS works by selecting the box with the highest score and
@@ -1315,7 +1315,7 @@ def greedy_nms(y_pred_decoded, iou_threshold=0.45, coords='minmax'):
 
     Returns:
         The predictions after removing non-maxima. The format is the same as the input format.
-    '''
+    """
     y_pred_decoded_nms = []
     for batch_item in y_pred_decoded: # For the labels of each batch item...
         boxes_left = np.copy(batch_item)
@@ -1570,7 +1570,7 @@ def decode_y2(y_pred,
 
 
 class SSDBoxEncoder:
-    '''
+    """
     A class to transform ground truth labels for object detection in images
     (2D bounding box coordinates and class labels) to the format required for
     training an SSD model, and to transform predictions of the SSD model back
@@ -1579,7 +1579,7 @@ class SSDBoxEncoder:
     In the process of encoding ground truth labels, a template of anchor boxes
     is being built, which are subsequently matched to the ground truth boxes
     via an intersection-over-union threshold criterion.
-    '''
+    """
 
     def __init__(self,
                  img_height,
@@ -1598,7 +1598,7 @@ class SSDBoxEncoder:
                  neg_iou_threshold=0.3,
                  coords='centroids',
                  normalize_coords=False):
-        '''
+        """
         Arguments:
             img_height (int): The height of the input images.
             img_width (int): The width of the input images.
@@ -1658,7 +1658,7 @@ class SSDBoxEncoder:
             normalize_coords (bool, optional): If `True`, the encoder uses relative instead of absolute coordinates.
                 This means instead of using absolute tartget coordinates, the encoder will scale all coordinates to be within [0,1].
                 This way learning becomes independent of the input image size. Defaults to `False`.
-        '''
+        """
         if variances is None:
             variances = [1.0, 1.0, 1.0, 1.0]
         if aspect_ratios_global is None:
