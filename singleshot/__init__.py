@@ -349,9 +349,9 @@ def SSD(image_size,
 
 
 class SSDLoss:
-    '''
+    """
     The SSD loss, see https://arxiv.org/abs/1512.02325.
-    '''
+    """
 
     def __init__(self,
                  neg_pos_ratio=3,
@@ -526,7 +526,7 @@ class SSDLoss:
 
 
 class L2Normalization(Layer):
-    '''
+    """
     Performs L2 normalization on the input tensor with a learnable scaling parameter
     as described in the paper "Parsenet: Looking Wider to See Better" (see references)
     and as used in the original SSD model.
@@ -544,7 +544,7 @@ class L2Normalization(Layer):
 
     References:
         http://cs.unc.edu/~wliu/papers/parsenet.pdf
-    '''
+    """
 
     def __init__(self, gamma_init=20, **kwargs):
         if K.image_dim_ordering() == 'tf':
@@ -566,9 +566,23 @@ class L2Normalization(Layer):
         output *= self.gamma
         return output
 
+    def get_config(self):
+        config = {"gamma":self.gamma}
+        config.update(super(L2Normalization, self).get_config())
+        return config
+
+    # def from_config(cls, config):
+    #     cls.gamma = config['gamma']
+    #     if K.image_dim_ordering() == 'tf':
+    #         cls.axis = 3
+    #     else:
+    #         cls.axis = 1
+
+
+
 
 class AnchorBoxes(Layer):
-    '''
+    """
     A Keras layer to create an output tensor containing anchor box coordinates based on the
     input tensor and the passed arguments.
 
@@ -595,7 +609,7 @@ class AnchorBoxes(Layer):
 
     Output shape:
         5D tensor of shape `(batch, height, width, n_boxes, 4)`.
-    '''
+    """
 
     def __init__(self,
                  img_height,
@@ -609,7 +623,7 @@ class AnchorBoxes(Layer):
                  coords='centroids',
                  normalize_coords=False,
                  **kwargs):
-        '''
+        """
         All arguments need to be set to the same values as in the box encoding process, otherwise the behavior is undefined.
         Some of these arguments are explained in more detail in the documentation of the `SSDBoxEncoder` class.
 
@@ -638,7 +652,19 @@ class AnchorBoxes(Layer):
                 `(xmin, xmax, ymin, ymax)`. Defaults to 'centroids'.
             normalize_coords (bool, optional): Set to `True` if the model uses relative instead of absolute coordinates,
                 i.e. if the model predicts box coordinates within [0,1] instead of absolute coordinates. Defaults to `False`.
-        '''
+        """
+        self.config = {
+        "img_height":img_height,
+        "img_width":img_width,
+        "this_scale":this_scale,
+        "next_scale":next_scale,
+        "aspect_ratios":aspect_ratios,
+        "two_boxes_for_ar1":two_boxes_for_ar1 ,
+        "limit_boxes":limit_boxes,
+        "variances":variances,
+        "coords":coords,
+        "normalize_coords":normalize_coords}
+
         if K.backend() != 'tensorflow':
             raise TypeError("This layer only supports TensorFlow at the moment, but you are using the {} backend.".format(K.backend()))
 
@@ -673,7 +699,7 @@ class AnchorBoxes(Layer):
         super(AnchorBoxes, self).build(input_shape)
 
     def call(self, x, mask=None):
-        '''
+        """
         Return an anchor box tensor based on the shape of the input tensor.
 
         The logic implemented here is identical to the logic in the module `ssd_box_encode_decode_utils.py`.
@@ -687,7 +713,7 @@ class AnchorBoxes(Layer):
             x (tensor): 4D tensor of shape `(batch, channels, height, width)` if `dim_ordering = 'th'`
                 or `(batch, height, width, channels)` if `dim_ordering = 'tf'`. The input for this
                 layer must be the output of the localization predictor layer.
-        '''
+        """
 
         # Compute box width and height for each aspect ratio
         # The shorter side of the image will be used to compute `w` and `h` using `scale` and `aspect_ratios`.
@@ -779,3 +805,50 @@ class AnchorBoxes(Layer):
         else: # Not yet relevant since TensorFlow is the only supported backend right now, but it can't harm to have this in here for the future
             batch_size, feature_map_channels, feature_map_height, feature_map_width = input_shape
         return (batch_size, feature_map_height, feature_map_width, self.n_boxes, 8)
+
+    def get_config(self):
+        config = self.config
+        config.update(super(L2Normalization, self).get_config())
+        return config
+
+
+    # def from_config(cls, config):
+    #
+    #     img_height = config['img_height']
+    #     img_width = config['img_width']
+    #     this_scale = config['this_scale']
+    #     next_scale = config['next_scale']
+    #     aspect_ratios = config['aspect_ratios']
+    #     two_boxes_for_ar1 = config['two_boxes_for_ar1']
+    #     limit_boxes = config['limit_boxes']
+    #     variances = config['variances']
+    #     coords = config['coords']
+    #     normalize_coords = config['normalize_coords']
+    #
+    #     if K.backend() != 'tensorflow':
+    #         raise TypeError("This layer only supports TensorFlow at the moment, but you are using the {} backend.".format(K.backend()))
+    #
+    #     if (this_scale < 0) or (next_scale < 0) or (this_scale > 1):
+    #         raise ValueError("`this_scale` must be in [0, 1] and `next_scale` must be >0, but `this_scale` == {}, `next_scale` == {}".format(this_scale, next_scale))
+    #
+    #     if len(variances) != 4:
+    #         raise ValueError("4 variance values must be pased, but {} values were received.".format(len(variances)))
+    #     variances = np.array(variances)
+    #     if np.any(variances <= 0):
+    #         raise ValueError("All variances must be >0, but the variances given are {}".format(variances))
+    #
+    #     cls.img_height = img_height
+    #     cls.img_width = img_width
+    #     cls.this_scale = this_scale
+    #     cls.next_scale = next_scale
+    #     cls.aspect_ratios = aspect_ratios
+    #     cls.two_boxes_for_ar1 = two_boxes_for_ar1
+    #     cls.limit_boxes = limit_boxes
+    #     cls.variances = variances
+    #     cls.coords = coords
+    #     cls.normalize_coords = normalize_coords
+    #     # Compute the number of boxes per cell
+    #     if (1 in aspect_ratios) & two_boxes_for_ar1:
+    #         cls.n_boxes = len(aspect_ratios) + 1
+    #     else:
+    #         cls.n_boxes = len(aspect_ratios)
