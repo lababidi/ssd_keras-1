@@ -808,7 +808,7 @@ class AnchorBoxes(Layer):
 
     def get_config(self):
         config = self.config
-        config.update(super(L2Normalization, self).get_config())
+        config.update(super(AnchorBoxes, self).get_config())
         return config
 
 
