@@ -986,3 +986,7 @@ def console():
     df = pandas.DataFrame(results, columns=['file_name', 'class_id', 'conf', 'xmin', 'xmax', 'ymin', 'ymax'])
     df['class_id'] = df['class_id'].apply(lambda xx: dataset_generator.class_map_inv[xx])
     df.to_csv('./' + args.name + '/' + args.outcsv)
+
+
+if __name__ == '__main__':
+    console()
