@@ -1,3 +1,3 @@
-from singleshot.trainssd import console
+from singleshot import console
 
 console()
