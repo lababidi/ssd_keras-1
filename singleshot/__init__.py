@@ -18,6 +18,7 @@ w_root = '/osn/share/vgg/'
 if not os.path.exists(w_root):
     w_root = 'vgg/'
 
+
 def get_w(n):
     return [np.load(w_root + '{}_0.npy'.format(n)), np.load(w_root + '{}_1.npy'.format(n))]
 
@@ -28,15 +29,10 @@ def SSD(image_size,
         max_scale=0.9,
         scales=None,
         aspect_ratios_global=None,
-        aspect_ratios_per_layer=[[0.5, 1.0, 2.0],
-                                     [1.0/3.0, 0.5, 1.0, 2.0, 3.0],
-                                     [1.0/3.0, 0.5, 1.0, 2.0, 3.0],
-                                     [1.0/3.0, 0.5, 1.0, 2.0, 3.0],
-                                     [0.5, 1.0, 2.0],
-                                     [0.5, 1.0, 2.0]],
+        aspect_ratios_per_layer=None,
         two_boxes_for_ar1=True,
         limit_boxes=False,
-        variances=[0.1, 0.1, 0.2, 0.2],
+        variances=None,
         coords='centroids',
         normalize_coords=False):
     '''
@@ -122,6 +118,15 @@ def SSD(image_size,
         https://arxiv.org/abs/1512.02325v5
     '''
 
+    if variances is None:
+        variances = [0.1, 0.1, 0.2, 0.2]
+    if aspect_ratios_per_layer is None:
+        aspect_ratios_per_layer = [[0.5, 1.0, 2.0],
+                                   [1.0 / 3.0, 0.5, 1.0, 2.0, 3.0],
+                                   [1.0 / 3.0, 0.5, 1.0, 2.0, 3.0],
+                                   [1.0 / 3.0, 0.5, 1.0, 2.0, 3.0],
+                                   [0.5, 1.0, 2.0],
+                                   [0.5, 1.0, 2.0]]
     n_predictor_layers = 6 # The number of predictor conv layers in the network is 6 for the original SSD300
 
     # Get a few exceptions out of the way first
@@ -191,10 +196,11 @@ def SSD(image_size,
     # Input image format
     img_height, img_width, img_channels = image_size[0], image_size[1], image_size[2]
 
-    ### Design the actual network
+    # Design the actual network
 
     x = Input(shape=(img_height, img_width, img_channels))
-    normed = Lambda(lambda z: z/127.5 - 1.0, # Convert input feature range to [-1,1]
+    # Convert input feature range to [-1,1]
+    normed = Lambda(lambda z: z/127.5 - 1.0,
                     output_shape=(img_height, img_width, img_channels),
                     name='lambda1')(x)
 
@@ -240,9 +246,10 @@ def SSD(image_size,
     # Feed conv4_3 into the L2 normalization layer
     conv4_3_norm = L2Normalization(gamma_init=20, name='conv4_3_norm')(conv4_3)
 
-    ### Build the convolutional predictor layers on top of the base network
+    # Build the convolutional predictor layers on top of the base network
 
-    # We precidt `n_classes` confidence values for each box, hence the confidence predictors have depth `n_boxes * n_classes`
+    # We precidt `n_classes` confidence values for each box,
+    # hence the confidence predictors have depth `n_boxes * n_classes`
     # Output shape of the confidence layers: `(batch, height, width, n_boxes * n_classes)`
     conv4_3_norm_mbox_conf = Conv2D(n_boxes_conv4_3 * n_classes, (3, 3), padding='same', name='conv4_3_norm_mbox_conf')(conv4_3_norm)
     fc7_mbox_conf = Conv2D(n_boxes_fc7 * n_classes, (3, 3), padding='same', name='fc7_mbox_conf')(fc7)
@@ -574,7 +581,7 @@ class L2Normalization(Layer):
 
 
 class AnchorBoxes(Layer):
-    '''
+    """
     A Keras layer to create an output tensor containing anchor box coordinates based on the
     input tensor and the passed arguments.
 
@@ -601,17 +608,17 @@ class AnchorBoxes(Layer):
 
     Output shape:
         5D tensor of shape `(batch, height, width, n_boxes, 4)`.
-    '''
+    """
 
     def __init__(self,
                  img_height,
                  img_width,
                  this_scale,
                  next_scale,
-                 aspect_ratios=[0.5, 1.0, 2.0],
+                 aspect_ratios=None,
                  two_boxes_for_ar1=True,
                  limit_boxes=True,
-                 variances=[1.0, 1.0, 1.0, 1.0],
+                 variances=None,
                  coords='centroids',
                  normalize_coords=False,
                  **kwargs):
@@ -645,6 +652,10 @@ class AnchorBoxes(Layer):
             normalize_coords (bool, optional): Set to `True` if the model uses relative instead of absolute coordinates,
                 i.e. if the model predicts box coordinates within [0,1] instead of absolute coordinates. Defaults to `False`.
         '''
+        if variances is None:
+            variances = [1.0, 1.0, 1.0, 1.0]
+        if aspect_ratios is None:
+            aspect_ratios = [0.5, 1.0, 2.0]
         if K.backend() != 'tensorflow':
             raise TypeError("This layer only supports TensorFlow at the moment, but you are using the {} backend.".format(K.backend()))
 
@@ -674,27 +685,6 @@ class AnchorBoxes(Layer):
             self.n_boxes = len(aspect_ratios)
         super(AnchorBoxes, self).__init__(**kwargs)
 
-    def build(self, input_shape):
-        self.input_spec = [InputSpec(shape=input_shape)]
-        super(AnchorBoxes, self).build(input_shape)
-
-    def call(self, x, mask=None):
-        '''
-        Return an anchor box tensor based on the shape of the input tensor.
-
-        The logic implemented here is identical to the logic in the module `ssd_box_encode_decode_utils.py`.
-
-        Note that this tensor does not participate in any graph computations at runtime. It is being created
-        as a constant once during graph creation and is just being output along with the rest of the model output
-        during runtime. Because of this, all logic is implemented as Numpy array operations and it is sufficient
-        to convert the resulting Numpy array into a Keras tensor at the very end before outputting it.
-
-        Arguments:
-            x (tensor): 4D tensor of shape `(batch, channels, height, width)` if `dim_ordering = 'th'`
-                or `(batch, height, width, channels)` if `dim_ordering = 'tf'`. The input for this
-                layer must be the output of the localization predictor layer.
-        '''
-
         # Compute box width and height for each aspect ratio
         # The shorter side of the image will be used to compute `w` and `h` using `scale` and `aspect_ratios`.
         self.aspect_ratios = np.sort(self.aspect_ratios)
@@ -715,31 +705,30 @@ class AnchorBoxes(Layer):
                 w = self.this_scale * size * np.sqrt(ar)
                 h = self.this_scale * size / np.sqrt(ar)
                 wh_list.append((w,h))
-        wh_list = np.array(wh_list)
+        self.wh_list = np.array(wh_list)
 
-        # We need the shape of the input tensor
-        if K.image_dim_ordering() == 'tf':
-            batch_size, feature_map_height, feature_map_width, feature_map_channels = x._keras_shape
-        else: # Not yet relevant since TensorFlow is the only supported backend right now, but it can't harm to have this in here for the future
-            batch_size, feature_map_channels, feature_map_height, feature_map_width = x._keras_shape
+    def build(self, input_shape):
+        self.input_spec = [InputSpec(shape=input_shape)]
+        self._input_shape = input_shape
+        _, self.feature_map_height, self.feature_map_width, _ = input_shape
 
         # Compute the grid of box center points. They are identical for all aspect ratios
-        cell_height = self.img_height / feature_map_height
-        cell_width = self.img_width / feature_map_width
-        cx = np.linspace(cell_width/2, self.img_width-cell_width/2, feature_map_width)
-        cy = np.linspace(cell_height/2, self.img_height-cell_height/2, feature_map_height)
+        cell_height = self.img_height / self.feature_map_height
+        cell_width = self.img_width / self.feature_map_width
+        cx = np.linspace(cell_width/2, self.img_width-cell_width/2, self.feature_map_width)
+        cy = np.linspace(cell_height/2, self.img_height-cell_height/2, self.feature_map_height)
         cx_grid, cy_grid = np.meshgrid(cx, cy)
         cx_grid = np.expand_dims(cx_grid, -1) # This is necessary for np.tile() to do what we want further down
         cy_grid = np.expand_dims(cy_grid, -1) # This is necessary for np.tile() to do what we want further down
 
         # Create a 4D tensor template of shape `(feature_map_height, feature_map_width, n_boxes, 4)`
         # where the last dimension will contain `(cx, cy, w, h)`
-        boxes_tensor = np.zeros((feature_map_height, feature_map_width, self.n_boxes, 4))
+        boxes_tensor = np.zeros((self.feature_map_height, self.feature_map_width, self.n_boxes, 4))
 
         boxes_tensor[:, :, :, 0] = np.tile(cx_grid, (1, 1, self.n_boxes)) # Set cx
         boxes_tensor[:, :, :, 1] = np.tile(cy_grid, (1, 1, self.n_boxes)) # Set cy
-        boxes_tensor[:, :, :, 2] = wh_list[:, 0] # Set w
-        boxes_tensor[:, :, :, 3] = wh_list[:, 1] # Set h
+        boxes_tensor[:, :, :, 2] = self.wh_list[:, 0] # Set w
+        boxes_tensor[:, :, :, 3] = self.wh_list[:, 1] # Set h
 
         # Convert `(cx, cy, w, h)` to `(xmin, xmax, ymin, ymax)`
         boxes_tensor = convert_coordinates(boxes_tensor, start_index=0, conversion='centroids2minmax')
@@ -761,7 +750,8 @@ class AnchorBoxes(Layer):
             boxes_tensor[:, :, :, 2:] /= self.img_height
 
         if self.coords == 'centroids':
-            # TODO: Implement box limiting directly for `(cx, cy, w, h)` so that we don't have to unnecessarily convert back and forth
+            # TODO: Implement box limiting directly for `(cx, cy, w, h)`
+            # so that we don't have to unnecessarily convert back and forth
             # Convert `(xmin, xmax, ymin, ymax)` back to `(cx, cy, w, h)`
             boxes_tensor = convert_coordinates(boxes_tensor, start_index=0, conversion='minmax2centroids')
 
@@ -774,15 +764,115 @@ class AnchorBoxes(Layer):
 
         # Now prepend one dimension to `boxes_tensor` to account for the batch size and tile it along
         # The result will be a 5D tensor of shape `(batch_size, feature_map_height, feature_map_width, n_boxes, 8)`
-        boxes_tensor = np.expand_dims(boxes_tensor, axis=0)
-        boxes_tensor = K.tile(K.constant(boxes_tensor, dtype='float32'), (K.shape(x)[0], 1, 1, 1, 1))
+        self.boxes_tensor = np.expand_dims(boxes_tensor, axis=0)
 
-        return boxes_tensor
+        super(AnchorBoxes, self).build(input_shape)
+
+    def call(self, x, mask=None):
+        """
+        Return an anchor box tensor based on the shape of the input tensor.
+
+        The logic implemented here is identical to the logic in the module `ssd_box_encode_decode_utils.py`.
+
+        Note that this tensor does not participate in any graph computations at runtime. It is being created
+        as a constant once during graph creation and is just being output along with the rest of the model output
+        during runtime. Because of this, all logic is implemented as Numpy array operations and it is sufficient
+        to convert the resulting Numpy array into a Keras tensor at the very end before outputting it.
+
+        Arguments:
+            x (tensor): 4D tensor of shape `(batch, channels, height, width)` if `dim_ordering = 'th'`
+                or `(batch, height, width, channels)` if `dim_ordering = 'tf'`. The input for this
+                layer must be the output of the localization predictor layer.
+        """
+
+        # Compute box width and height for each aspect ratio
+        # The shorter side of the image will be used to compute `w` and `h` using `scale` and `aspect_ratios`.
+        # self.aspect_ratios = np.sort(self.aspect_ratios)
+        # size = min(self.img_height, self.img_width)
+        # # Compute the box widths and and heights for all aspect ratios
+        # wh_list = []
+        # for ar in self.aspect_ratios:
+        #     if (ar == 1) & self.two_boxes_for_ar1:
+        #         # Compute the regular default box for aspect ratio 1 and...
+        #         w = self.this_scale * size * np.sqrt(ar)
+        #         h = self.this_scale * size / np.sqrt(ar)
+        #         wh_list.append((w,h))
+        #         # ...also compute one slightly larger version using the geometric mean of this scale value and the next
+        #         w = np.sqrt(self.this_scale * self.next_scale) * size * np.sqrt(ar)
+        #         h = np.sqrt(self.this_scale * self.next_scale) * size / np.sqrt(ar)
+        #         wh_list.append((w,h))
+        #     else:
+        #         w = self.this_scale * size * np.sqrt(ar)
+        #         h = self.this_scale * size / np.sqrt(ar)
+        #         wh_list.append((w,h))
+        # wh_list = np.array(wh_list)
+
+        # We need the shape of the input tensor
+        # if K.image_dim_ordering() == 'tf':
+        # _, feature_map_height, feature_map_width, feature_map_channels = x._keras_shape
+        # else: # Not yet relevant since TensorFlow is the only supported backend right now, but it can't harm to have this in here for the future
+        #     batch_size, feature_map_channels, feature_map_height, feature_map_width = x._keras_shape
+
+        # Compute the grid of box center points. They are identical for all aspect ratios
+        # cell_height = self.img_height / self.feature_map_height
+        # cell_width = self.img_width / self.feature_map_width
+        # cx = np.linspace(cell_width/2, self.img_width-cell_width/2, self.feature_map_width)
+        # cy = np.linspace(cell_height/2, self.img_height-cell_height/2, self.feature_map_height)
+        # cx_grid, cy_grid = np.meshgrid(cx, cy)
+        # cx_grid = np.expand_dims(cx_grid, -1) # This is necessary for np.tile() to do what we want further down
+        # cy_grid = np.expand_dims(cy_grid, -1) # This is necessary for np.tile() to do what we want further down
+
+        # Create a 4D tensor template of shape `(feature_map_height, feature_map_width, n_boxes, 4)`
+        # where the last dimension will contain `(cx, cy, w, h)`
+        # boxes_tensor = np.zeros((self.feature_map_height, self.feature_map_width, self.n_boxes, 4))
+        #
+        # boxes_tensor[:, :, :, 0] = np.tile(cx_grid, (1, 1, self.n_boxes)) # Set cx
+        # boxes_tensor[:, :, :, 1] = np.tile(cy_grid, (1, 1, self.n_boxes)) # Set cy
+        # boxes_tensor[:, :, :, 2] = self.wh_list[:, 0] # Set w
+        # boxes_tensor[:, :, :, 3] = self.wh_list[:, 1] # Set h
+
+        # Convert `(cx, cy, w, h)` to `(xmin, xmax, ymin, ymax)`
+        # boxes_tensor = convert_coordinates(boxes_tensor, start_index=0, conversion='centroids2minmax')
+        #
+        # # If `limit_boxes` is enabled, clip the coordinates to lie within the image boundaries
+        # if self.limit_boxes:
+        #     x_coords = boxes_tensor[:,:,:,[0, 1]]
+        #     x_coords[x_coords >= self.img_width] = self.img_width - 1
+        #     x_coords[x_coords < 0] = 0
+        #     boxes_tensor[:,:,:,[0, 1]] = x_coords
+        #     y_coords = boxes_tensor[:,:,:,[2, 3]]
+        #     y_coords[y_coords >= self.img_height] = self.img_height - 1
+        #     y_coords[y_coords < 0] = 0
+        #     boxes_tensor[:,:,:,[2, 3]] = y_coords
+        #
+        # # `normalize_coords` is enabled, normalize the coordinates to be within [0,1]
+        # if self.normalize_coords:
+        #     boxes_tensor[:, :, :, :2] /= self.img_width
+        #     boxes_tensor[:, :, :, 2:] /= self.img_height
+        #
+        # if self.coords == 'centroids':
+        #     # TODO: Implement box limiting directly for `(cx, cy, w, h)` so that we don't have to unnecessarily convert back and forth
+        #     # Convert `(xmin, xmax, ymin, ymax)` back to `(cx, cy, w, h)`
+        #     boxes_tensor = convert_coordinates(boxes_tensor, start_index=0, conversion='minmax2centroids')
+        #
+        # # 4: Create a tensor to contain the variances and append it to `boxes_tensor`. This tensor has the same shape
+        # #    as `boxes_tensor` and simply contains the same 4 variance values for every position in the last axis.
+        # variances_tensor = np.zeros_like(boxes_tensor) # Has shape `(feature_map_height, feature_map_width, n_boxes, 4)`
+        # variances_tensor += self.variances # Long live broadcasting
+        # # Now `boxes_tensor` becomes a tensor of shape `(feature_map_height, feature_map_width, n_boxes, 8)`
+        # boxes_tensor = np.concatenate((boxes_tensor, variances_tensor), axis=-1)
+        #
+        # # Now prepend one dimension to `boxes_tensor` to account for the batch size and tile it along
+        # # The result will be a 5D tensor of shape `(batch_size, feature_map_height, feature_map_width, n_boxes, 8)`
+        # boxes_tensor = np.expand_dims(boxes_tensor, axis=0)
+        return K.tile(K.constant(self.boxes_tensor, dtype='float32'), (K.shape(x)[0], 1, 1, 1, 1))
 
     def compute_output_shape(self, input_shape):
         if K.image_dim_ordering() == 'tf':
             batch_size, feature_map_height, feature_map_width, feature_map_channels = input_shape
-        else: # Not yet relevant since TensorFlow is the only supported backend right now, but it can't harm to have this in here for the future
+        else:
+            # Not yet relevant since TensorFlow is the only supported backend right now,
+            # but it can't harm to have this in here for the future
             batch_size, feature_map_channels, feature_map_height, feature_map_width = input_shape
         return (batch_size, feature_map_height, feature_map_width, self.n_boxes, 8)
 
@@ -943,23 +1033,22 @@ def console():
 
     print("Model and weights saved as {}[_weights].h5".format(args.name))
 
-    predict_generator = dataset_generator.generate(batch_size=1,
-                                             train=False,
-                                             equalize=False,
-                                             brightness=False,
-                                             flip=False,
-                                             translate=False,
-                                             scale=False,
-                                             crop=False,
-                                             resize=False,
-                                             limit_boxes=True,
-                                             include_thresh=0.4,
-                                             diagnostics=False,
-                                             val=True,
-                                             rgb_to_gray=False,
-                                             gray_to_rgb=False,
-                                             multipectral_to_rgb=True)
-
+    # predict_generator = dataset_generator.generate(batch_size=1,
+    #                                          train=False,
+    #                                          equalize=False,
+    #                                          brightness=False,
+    #                                          flip=False,
+    #                                          translate=False,
+    #                                          scale=False,
+    #                                          crop=False,
+    #                                          resize=False,
+    #                                          limit_boxes=True,
+    #                                          include_thresh=0.4,
+    #                                          diagnostics=False,
+    #                                          val=True,
+    #                                          rgb_to_gray=False,
+    #                                          gray_to_rgb=False,
+    #                                          multipectral_to_rgb=True)
 
     val_dir = '/osn/SpaceNet-MOD/testing/rgb-ps-dra/300/'
 
@@ -981,11 +1070,55 @@ def console():
                                      img_width=img_width)
                         for row in y[0]:
                             results.append([filename] + row.tolist())
-                    except ValueError as e:
+                    except ValueError:
                         pass
     df = pandas.DataFrame(results, columns=['file_name', 'class_id', 'conf', 'xmin', 'xmax', 'ymin', 'ymax'])
     df['class_id'] = df['class_id'].apply(lambda xx: dataset_generator.class_map_inv[xx])
     df.to_csv('./' + args.name + '/' + args.outcsv)
+
+
+def convert_model():
+    parser = ArgumentParser()
+    parser.add_argument('--model')
+    parser.add_argument('--name', default='ssd')
+    parser.add_argument('--scale', type=float)
+    parser.add_argument('--classes', type=lambda ss: [int(s) for s in ss.split(',')])
+    parser.add_argument('--min_scale', type=float)
+    parser.add_argument('--max_scale', type=float)
+    parser.add_argument('--epochs', type=int, default=1000)
+    parser.add_argument('--rgb_to_gray', type=bool, default=False)
+    parser.add_argument('--gray_to_rgb', type=bool, default=False)
+    parser.add_argument('--multispectral_to_rgb', type=bool, default=False)
+    parser.add_argument('--batch_size', type=int, default=4)
+    parser.add_argument('--outcsv', default='ssd_results.csv')
+    parser.add_argument('--split_ratio', type=float, default=1.0)
+    parser.add_argument('--gpus', default='0,1,2,3')
+    parser.add_argument('csv', default='/osn/share/rail.csv')
+    args = parser.parse_args()
+
+    n_classes = len(args.classes)+1 if args.classes else 2
+    scales = [args.scale] * 7 if args.scale else None
+    aspect_ratios = [[1.0]] * 6
+    two_boxes_for_ar1 = True
+    limit_boxes = False
+    variances = [0.1, 0.1, 0.2, 0.2]
+    coords = 'minmax'
+    normalize_coords = False
+
+    model, predictor_sizes = SSD(image_size=(args.image_size, args.image_size, args.bands),
+                                 n_classes=n_classes,
+                                 min_scale=args.min_scale,
+                                 max_scale=args.max_scale,
+                                 scales=scales,
+                                 aspect_ratios_global=None,
+                                 aspect_ratios_per_layer=aspect_ratios,
+                                 two_boxes_for_ar1=two_boxes_for_ar1,
+                                 limit_boxes=limit_boxes,
+                                 variances=variances,
+                                 coords=coords,
+                                 normalize_coords=normalize_coords)
+
+    model.load_weights(args.model)
 
 
 if __name__ == '__main__':
