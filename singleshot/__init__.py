@@ -897,6 +897,7 @@ def console():
     # append_to_aspect_ratio_list(aspect_ratios, 12.0)
     # append_to_aspect_ratio_list(aspect_ratios, 10.0)
     if args.max_aspect:
+        aspect_ratios = []
         append_to_aspect_ratio_list(aspect_ratios, args.max_aspect)
     # append_to_aspect_ratio_list(aspect_ratios, 4.5)
     # append_to_aspect_ratio_list(aspect_ratios, 4.0)
