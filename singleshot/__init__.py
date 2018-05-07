@@ -882,7 +882,7 @@ def console():
     parser.add_argument('--model')
     parser.add_argument('--name', default='ssd')
     parser.add_argument('--scale', type=float)
-    parser.add_argument('--classes', type=lambda ss: [int(s) for s in ss.split(',')])
+    parser.add_argument('--classes', type=lambda ss: [str(int(s)) for s in ss.split(',')])
     parser.add_argument('--min_scale', type=float)
     parser.add_argument('--max_scale', type=float)
     parser.add_argument('--epochs', type=int, default=1000)
