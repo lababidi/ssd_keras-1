@@ -882,7 +882,7 @@ def console():
     parser.add_argument('--model')
     parser.add_argument('--name', default='ssd')
     parser.add_argument('--scale', type=float)
-    parser.add_argument('--classes', type=lambda ss: [str(int(s)) for s in ss.split(',')])
+    parser.add_argument('--classes', type=lambda ss: [int(s) for s in ss.split(',')])
     parser.add_argument('--min_scale', type=float)
     parser.add_argument('--max_scale', type=float)
     parser.add_argument('--epochs', type=int, default=1000)
@@ -912,6 +912,8 @@ def console():
     img_width = 300  # Width of the input images
     img_channels = 3  # Number of color channels of the input images
     n_classes = len(args.classes)+1 if args.classes else 2
+    if '0' in args.classes:
+        n_classes -= 1
     # Number of classes including the background class, e.g. 21 for the Pascal VOC datasets
     #scales = [0.01, 0.04, 0.07, 0.1, 0.13, 0.17, 0.5 ] #[args.scale] * 7 if args.scale else None
     scales = [args.scale] * 7 if args.scale else None
@@ -945,10 +947,8 @@ def console():
     if args.model:
         model.load_weights(args.model, by_name=True)
 
-
     model.compile(optimizer=(Adam(lr=0.01, beta_1=0.9, beta_2=0.999, epsilon=1e-08, decay=5e-05)),
                   loss=SSDLoss(neg_pos_ratio=3, n_neg_min=0, alpha=0.1).compute_loss)
-
 
     ssd_box_encoder = SSDBoxEncoder(img_height=img_height,
                                     img_width=img_width,
@@ -967,7 +967,6 @@ def console():
                                     coords=coords,
                                     normalize_coords=normalize_coords)
 
-
     dataset_generator = BatchGenerator(include_classes=args.classes)
 
     if not os.path.exists(args.name):
@@ -978,33 +977,29 @@ def console():
                                 split_ratio=args.split_ratio,
                                 checkpoints_path=args.name)
 
-    train_generator = dataset_generator.generate(batch_size=args.batch_size,
-                                             train=True,
-                                             ssd_box_encoder=ssd_box_encoder,
-                                             limit_boxes=True,  # While the anchor boxes are not being clipped,
-                                             include_thresh=0.4,
-                                             diagnostics=False,
-                                             rgb_to_gray=args.rgb_to_gray,
-                                             gray_to_rgb=args.gray_to_rgb,
-                                             multispectral_to_rgb=args.multispectral_to_rgb)
+    train_generator = dataset_generator.generate(
+                                            batch_size=args.batch_size,
+                                            train=True,
+                                            ssd_box_encoder=ssd_box_encoder,
+                                            limit_boxes=True,  # While the anchor boxes are not being clipped,
+                                            include_thresh=0.4,
+                                            rgb_to_gray=args.rgb_to_gray,
+                                            gray_to_rgb=args.gray_to_rgb,
+                                            multispectral_to_rgb=args.multispectral_to_rgb
+                                            )
 
-    val_generator = dataset_generator.generate(batch_size=args.batch_size,
-                                         train=True,
-                                         ssd_box_encoder=ssd_box_encoder,
-                                         equalize=False,
-                                         brightness=False,
-                                         flip=False,
-                                         translate=False,
-                                         scale=False,
-                                         crop=False,
-                                         resize=False,
-                                         limit_boxes=True,
-                                         include_thresh=0.4,
-                                         diagnostics=False,
-                                         val=True,
-                                         rgb_to_gray=args.rgb_to_gray,
-                                         gray_to_rgb=args.gray_to_rgb,
-                                         multispectral_to_rgb=args.multispectral_to_rgb)
+    val_generator = dataset_generator.generate(
+                                                batch_size=args.batch_size,
+                                                train=True,
+                                                ssd_box_encoder=ssd_box_encoder,
+                                                resize=False,
+                                                limit_boxes=True,
+                                                include_thresh=0.4,
+                                                rgb_to_gray=args.rgb_to_gray,
+                                                gray_to_rgb=args.gray_to_rgb,
+                                                multispectral_to_rgb=args.multispectral_to_rgb,
+                                                val=True,
+                                               )
 
     def lr_schedule(epoch):
         if epoch <= 500:

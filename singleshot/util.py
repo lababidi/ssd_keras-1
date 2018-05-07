@@ -180,6 +180,7 @@ class BatchGenerator:
         # `self.labels` is a list containing one 2D Numpy array per image. For an image with `k` ground truth bounding boxes,
         # the respective 2D array has `k` rows, each row containing `(xmin, xmax, ymin, ymax, class_id)` for the respective bounding box.
         self.labels = []  # Each entry here will contain a 2D Numpy array with all the ground truth boxes for a given image
+        print(self.class_map, self.class_map_inv, include_classes, box_output_format, self.classes)
 
     def parse_csv(self,
                   labels_path=None,
@@ -206,11 +207,11 @@ class BatchGenerator:
         """
 
         # If we get arguments in this call, set them
-        if not labels_path is None: self.labels_path = labels_path
-        if not input_format is None: self.input_format = input_format
+        self.labels_path = labels_path
+        self.input_format = input_format
 
         # Before we begin, make sure that we have a labels_path and an input_format
-        if self.labels_path is None or self.input_format is None:
+        if labels_path is None or input_format is None:
             raise ValueError(
                 "`labels_path` and/or `input_format` have not been set yet. You need to pass them as arguments.")
 
