@@ -575,8 +575,8 @@ class L2Normalization(Layer):
         super(L2Normalization, self).build(input_shape)
 
     def call(self, x, mask=None):
-        output = K.l2_normalize(x, self.axis)
-        output *= self.gamma
+        output = self.gamma * K.l2_normalize(x, self.axis)
+        # output *= self.gamma
         return output
 
 
@@ -886,8 +886,8 @@ def console():
     parser.add_argument('--min_scale', type=float)
     parser.add_argument('--max_scale', type=float)
     parser.add_argument('--epochs', type=int, default=1000)
-    parser.add_argument('--rgb_to_gray', type=bool, default=False)
-    parser.add_argument('--gray_to_rgb', type=bool, default=False)
+    parser.add_argument('--rgb_to_gray', dest='rgb_to_gray', action="store_true")
+    parser.add_argument('--gray_to_rgb', dest='gray_to_rgb', action="store_true")
     parser.add_argument('--multispectral_to_rgb', type=bool, default=False)
     parser.add_argument('--batch_size', type=int, default=4)
     parser.add_argument('--outcsv', default='ssd_results.csv')
@@ -1093,7 +1093,7 @@ def convert_model():
     parser.add_argument('--outcsv', default='ssd_results.csv')
     parser.add_argument('--split_ratio', type=float, default=1.0)
     parser.add_argument('--gpus', default='0,1,2,3')
-    parser.add_argument('csv', default='/osn/share/rail.csv')
+    parser.add_argument('output', help="Location of pb output")
     args = parser.parse_args()
 
     n_classes = len(args.classes)+1 if args.classes else 2
@@ -1119,6 +1119,34 @@ def convert_model():
                                  normalize_coords=normalize_coords)
 
     model.load_weights(args.model)
+
+    from tensorflow.python.framework import graph_io
+    from tensorflow.python.framework import graph_util
+
+    # Export a serialized graph
+    sess = K.get_session()
+    tf.identity(model.outputs[0], name='output_node0')
+    constant_graph = graph_util.convert_variables_to_constants(sess, sess.graph.as_graph_def(), ['output_node0'])
+    graph_io.write_graph(constant_graph, args.output, 'ssd-model.pb', as_text=False)
+
+    import subprocess
+    subprocess.run([
+        'gbdxm','pack',
+        '--gbdxm-file', 'ssd-model.gbdxm',
+        '--name', 'ssd-model',
+        '--version', '0',
+        '--description', "ssd-model",
+        '--model-size', '300', '300',                       # Match SSD.image_size[0,1] \
+        '--color-mode', 'rgb',                           # Match SSD.image_size[2] \
+        '--label-names', 'a b c d e f g h i',            # One for each SSD.n_classes \
+        '--tensorflow-model', os.path.join(args.output, 'ssd-model.pb'),  # Match graph_io.write_graph path \
+        '--tensorflow-input-layer', 'input_1',
+        '--tensorflow-output-layers', 'output_node0',    # Match tf.identity name \
+        '--tensorflow-output-space', 'pixel',            # Match SSD.normalize_coords \
+        '--tensorflow-output-type', 'minmax',            # Match SSD.coords \
+        '--type', 'tensorflow',
+        '--category', 'ssd'
+    ])
 
 
 if __name__ == '__main__':
