@@ -1012,6 +1012,7 @@ def console():
             return 0.0001
         else:
             return 0.00001
+    print("STEPS", ceil(dataset_generator.count / args.batch_size))
 
     history = model.fit_generator(generator=train_generator,
                                   steps_per_epoch=ceil(dataset_generator.count / args.batch_size),
