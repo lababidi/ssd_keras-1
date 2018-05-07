@@ -874,12 +874,12 @@ def console():
 
     os.environ["CUDA_VISIBLE_DEVICES"] = args.gpus
 
-    def append_to_aspect_ratio_list(aspect_ratios=None, max_aspect_ratio=None):
+    def append_to_aspect_ratio_list(max_aspect_ratio=None):
         ratios = list(1 / np.linspace(1.0, max_aspect_ratio, 6))
         ratios.reverse()
         ratios += list(np.linspace(1.0, max_aspect_ratio, 6))[1:]
 
-        aspect_ratios.append(ratios)
+        return [ratios] * 6
 
     print(args.min_scale, args.max_scale)
     img_height = 300  # Height of the input images
@@ -897,8 +897,7 @@ def console():
     # append_to_aspect_ratio_list(aspect_ratios, 12.0)
     # append_to_aspect_ratio_list(aspect_ratios, 10.0)
     if args.max_aspect:
-        aspect_ratios = []
-        append_to_aspect_ratio_list(aspect_ratios, args.max_aspect)
+        aspect_ratios = append_to_aspect_ratio_list(args.max_aspect)
     # append_to_aspect_ratio_list(aspect_ratios, 4.5)
     # append_to_aspect_ratio_list(aspect_ratios, 4.0)
     two_boxes_for_ar1 = True
