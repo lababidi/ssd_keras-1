@@ -186,7 +186,7 @@ class BatchGenerator:
                   input_format=None,
                   split_ratio=1.0,
                   checkpoints_path=None):
-        '''
+        """
         Arguments:
             labels_path (str, optional): The filepath to a CSV file that contains one ground truth bounding box per line
                 and each line contains the following six items: image file name, class ID, xmin, xmax, ymin, ymax.
@@ -203,7 +203,7 @@ class BatchGenerator:
 
         Returns:
             None by default, optionally the image filenames and labels.
-        '''
+        """
 
         # If we get arguments in this call, set them
         if not labels_path is None: self.labels_path = labels_path
@@ -230,7 +230,7 @@ class BatchGenerator:
                     k += 1
                     continue
                 else:
-                    if self.include_classes == 'all' or int(row[self.input_format.index(
+                    if self.include_classes == None or int(row[self.input_format.index(
                             'class_id')].strip()) in self.include_classes:  # If the class_id is among the classes that are to be included in the dataset...
                         obj = [row[self.input_format.index('image_name')].strip()]
                         # Store the box class and coordinates here
