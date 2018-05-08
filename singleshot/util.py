@@ -452,7 +452,7 @@ class BatchGenerator:
             for filename in filenames[current:current + batch_size]:
                 with rasterio.open('{}'.format(filename)) as img:
                     img = img.read().transpose([1, 2, 0])
-                    if rgb_to_gray and 'png' in filename:
+                    if rgb_to_gray and img.shape[2] != 1:
                         batch_X.append(img[:, :, 0:1])
                     else:
                         batch_X.append(img)
