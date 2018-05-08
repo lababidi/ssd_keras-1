@@ -34,7 +34,7 @@ def SSD(image_size,
         limit_boxes=False,
         variances=None,
         coords='centroids',
-        normalize_coords=False):
+        normalize_coords=False, max_pixel=255.0):
     """
     Build a Keras model with SSD_300 architecture, see references.
 
@@ -208,7 +208,7 @@ def SSD(image_size,
 
     x = Input(shape=(img_height, img_width, img_channels))
     # Convert input feature range to [-1,1]
-    normed = Lambda(lambda z: z / 127.5 - 1.0,
+    normed = Lambda(lambda z: 2 * z / max_pixel - 1.0,
                     output_shape=(img_height, img_width, img_channels),
                     name='lambda1')(x)
 
@@ -865,6 +865,7 @@ def console():
     parser.add_argument('--rgb_to_gray', dest='rgb_to_gray', action="store_true")
     parser.add_argument('--gray_to_rgb', dest='gray_to_rgb', action="store_true")
     parser.add_argument('--multispectral_to_rgb', type=bool, default=False)
+    parser.add_argument('--max_pixel', type=float, default=255.0)
     parser.add_argument('--batch_size', type=int, default=4)
     parser.add_argument('--outcsv', default='ssd_results.csv')
     parser.add_argument('--split_ratio', type=float, default=1.0)
@@ -918,7 +919,8 @@ def console():
                                  limit_boxes=limit_boxes,
                                  variances=variances,
                                  coords=coords,
-                                 normalize_coords=normalize_coords)
+                                 normalize_coords=normalize_coords,
+                                 max_pixel=args.max_pixel)
     if args.model:
         model.load_weights(args.model, by_name=True)
 
@@ -1064,7 +1066,8 @@ def convert_model():
                                  limit_boxes=limit_boxes,
                                  variances=variances,
                                  coords=coords,
-                                 normalize_coords=normalize_coords)
+                                 normalize_coords=normalize_coords,
+                                 max_pixel=args.max_pixel)
 
     model.load_weights(args.model)
 
