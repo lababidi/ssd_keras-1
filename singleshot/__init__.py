@@ -853,24 +853,7 @@ class AnchorBoxes(Layer):
 
 
 def console():
-    parser = ArgumentParser()
-    parser.add_argument('--model')
-    parser.add_argument('--name', default='ssd')
-    parser.add_argument('--classes', type=lambda ss: [int(s) for s in ss.split(',')])
-    parser.add_argument('--scale', type=float)
-    parser.add_argument('--min_scale', type=float)
-    parser.add_argument('--max_scale', type=float)
-    parser.add_argument('--max_aspect', type=float)
-    parser.add_argument('--epochs', type=int, default=100)
-    parser.add_argument('--rgb_to_gray', dest='rgb_to_gray', action="store_true")
-    parser.add_argument('--gray_to_rgb', dest='gray_to_rgb', action="store_true")
-    parser.add_argument('--multispectral_to_rgb', type=bool, default=False)
-    parser.add_argument('--hist', dest='hist', action="store_true")
-    parser.add_argument('--max_pixel', type=float, default=255.0)
-    parser.add_argument('--batch_size', type=int, default=4)
-    parser.add_argument('--outcsv', default='ssd_results.csv')
-    parser.add_argument('--split_ratio', type=float, default=1.0)
-    parser.add_argument('--gpus', default='0,1,2,3')
+    parser = get_args()
     parser.add_argument('csv', default='/osn/share/rail.csv')
     args = parser.parse_args()
 
@@ -1029,22 +1012,31 @@ def console():
     df['class_id'] = df['class_id'].apply(lambda xx: dataset_generator.class_map_inv[xx])
     df.to_csv('./' + args.name + '/' + args.outcsv)
 
-def validate():
+
+def get_args():
     parser = ArgumentParser()
     parser.add_argument('--model')
     parser.add_argument('--name', default='ssd')
-    parser.add_argument('--scale', type=float)
     parser.add_argument('--classes', type=lambda ss: [int(s) for s in ss.split(',')])
+    parser.add_argument('--scale', type=float)
     parser.add_argument('--min_scale', type=float)
     parser.add_argument('--max_scale', type=float)
-    parser.add_argument('--epochs', type=int, default=1000)
-    parser.add_argument('--rgb_to_gray', type=bool, default=False)
-    parser.add_argument('--gray_to_rgb', type=bool, default=False)
+    parser.add_argument('--max_aspect', type=float)
+    parser.add_argument('--epochs', type=int, default=100)
+    parser.add_argument('--rgb_to_gray', dest='rgb_to_gray', action="store_true")
+    parser.add_argument('--gray_to_rgb', dest='gray_to_rgb', action="store_true")
     parser.add_argument('--multispectral_to_rgb', type=bool, default=False)
+    parser.add_argument('--hist', dest='hist', action="store_true")
+    parser.add_argument('--max_pixel', type=float, default=255.0)
     parser.add_argument('--batch_size', type=int, default=4)
     parser.add_argument('--outcsv', default='ssd_results.csv')
     parser.add_argument('--split_ratio', type=float, default=1.0)
     parser.add_argument('--gpus', default='0,1,2,3')
+    return parser
+
+
+def validate():
+    parser = get_args()
     parser.add_argument('--image_size', default=300)
     parser.add_argument('input', help="Location of input images")
     parser.add_argument('output', help="Location of pb output")
@@ -1108,22 +1100,7 @@ def validate():
 
 
 def convert_model():
-    parser = ArgumentParser()
-    parser.add_argument('--model')
-    parser.add_argument('--name', default='ssd')
-    parser.add_argument('--scale', type=float)
-    parser.add_argument('--classes', type=lambda ss: [int(s) for s in ss.split(',')])
-    parser.add_argument('--min_scale', type=float)
-    parser.add_argument('--max_scale', type=float)
-    parser.add_argument('--epochs', type=int, default=1000)
-    parser.add_argument('--rgb_to_gray', type=bool, default=False)
-    parser.add_argument('--gray_to_rgb', type=bool, default=False)
-    parser.add_argument('--multispectral_to_rgb', type=bool, default=False)
-    parser.add_argument('--batch_size', type=int, default=4)
-    parser.add_argument('--outcsv', default='ssd_results.csv')
-    parser.add_argument('--split_ratio', type=float, default=1.0)
-    parser.add_argument('--gpus', default='0,1,2,3')
-    parser.add_argument('--image_size', default=300)
+    parser = get_args()
     parser.add_argument('output', help="Location of pb output")
     args = parser.parse_args()
 
