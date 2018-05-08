@@ -1045,6 +1045,7 @@ def validate():
     parser.add_argument('--outcsv', default='ssd_results.csv')
     parser.add_argument('--split_ratio', type=float, default=1.0)
     parser.add_argument('--gpus', default='0,1,2,3')
+    parser.add_argument('--image_size', default=300)
     parser.add_argument('input', help="Location of input images")
     parser.add_argument('output', help="Location of pb output")
     args = parser.parse_args()
