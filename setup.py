@@ -13,8 +13,8 @@ setup(
     python_requires='>=3',
     entry_points={
         'console_scripts': [
-            'trainssd=singleshot:console',
-            'validatessd=singleshot:validate',
+            'trainssd=singleshot.console:console',
+            'validatessd=singleshot.console:validate',
         ],
     },
 )
