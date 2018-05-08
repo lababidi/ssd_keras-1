@@ -343,7 +343,7 @@ class BatchGenerator:
             bad_files.append(current_file)
 
     def generate(self, batch_size=32, train=True, ssd_box_encoder=None, rgb_to_gray=False, gray_to_rgb=False,
-                 multispectral_to_rgb = False, diagnostics=False, val=False):
+                 multispectral_to_rgb = False, diagnostics=False, val=False, hist=False):
         """
         Generate batches of samples and corresponding labels indefinitely from
         lists of filenames and labels.
@@ -482,7 +482,8 @@ class BatchGenerator:
                     batch_X[i] = np.expand_dims(cv2.cvtColor(batch_X[i], cv2.COLOR_RGB2GRAY), 3)
 
                 elif gray_to_rgb and not rgb_to_gray and not multispectral_to_rgb:
-                    batch_X[i] = self.clahe.apply(batch_X[i])
+                    if hist:
+                        batch_X[i] = self.clahe.apply(batch_X[i])
                     batch_X[i] = cv2.cvtColor(batch_X[i], cv2.COLOR_BayerGR2RGB)
                     
                 elif multispectral_to_rgb and not rgb_to_gray and not gray_to_rgb:

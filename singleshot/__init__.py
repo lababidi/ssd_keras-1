@@ -865,6 +865,7 @@ def console():
     parser.add_argument('--rgb_to_gray', dest='rgb_to_gray', action="store_true")
     parser.add_argument('--gray_to_rgb', dest='gray_to_rgb', action="store_true")
     parser.add_argument('--multispectral_to_rgb', type=bool, default=False)
+    parser.add_argument('--hist', dest='hist', action="store_true")
     parser.add_argument('--max_pixel', type=float, default=255.0)
     parser.add_argument('--batch_size', type=int, default=4)
     parser.add_argument('--outcsv', default='ssd_results.csv')
@@ -960,7 +961,8 @@ def console():
         ssd_box_encoder=ssd_box_encoder,
         rgb_to_gray=args.rgb_to_gray,
         gray_to_rgb=args.gray_to_rgb,
-        multispectral_to_rgb=args.multispectral_to_rgb
+        multispectral_to_rgb=args.multispectral_to_rgb,
+        hist=args.hist,
     )
 
     val_generator = dataset_generator.generate(
@@ -971,6 +973,7 @@ def console():
         gray_to_rgb=args.gray_to_rgb,
         multispectral_to_rgb=args.multispectral_to_rgb,
         val=True,
+        hist=args.hist,
     )
 
     def lr_schedule(epoch):
