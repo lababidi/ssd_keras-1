@@ -1071,7 +1071,10 @@ def validate():
     #                              normalize_coords=normalize_coords,
     #                              max_pixel=args.max_pixel)
 
-    model = keras.models.load_model(args.model, custom_objects={"tf":tf})
+    model = keras.models.load_model(args.model,
+                                    custom_objects={"tf": tf,
+                                                    'L2Normalization': L2Normalization,
+                                                    "AnchorBoxes": AnchorBoxes})
 
     # model.load_weights(args.model)
     img_height = 300
