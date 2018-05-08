@@ -1059,7 +1059,7 @@ def validate():
     coords = 'minmax'
     normalize_coords = False
 
-    model, predictor_sizes = SSD(image_size=(args.image_size, args.image_size, args.bands),
+    model, predictor_sizes = SSD(image_size=(args.image_size, args.image_size, 3),
                                  n_classes=n_classes,
                                  min_scale=args.min_scale,
                                  max_scale=args.max_scale,
@@ -1076,6 +1076,7 @@ def validate():
     model.load_weights(args.model)
     img_height = 300
     img_width = 300
+    clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(4, 4))
 
     class_map_inv = {k + 1: v for k, v in enumerate(args.classes)} if args.classes else None
 
@@ -1083,7 +1084,9 @@ def validate():
     for r, d, filenames in os.walk(args.input):
         for filename in filenames:
             with rasterio.open(os.path.join(r, filename)) as f:
-                x = f.read().transpose([1, 2, 0])[np.newaxis, :]
+                x = f.read().transpose([1, 2, 0])
+                x = clahe.apply(x)
+                x = x[np.newaxis, :]
                 p = model.predict(x)
                 try:
                     y = decode_y(p,
