@@ -1046,7 +1046,7 @@ def validate():
 
     os.environ["CUDA_VISIBLE_DEVICES"] = args.gpus
 
-    print_structure(args.model)
+    # print_structure(args.model)
 
     n_classes = len(args.classes) + 1 if args.classes else 2
     scales = [args.scale] * 7 if args.scale else None
