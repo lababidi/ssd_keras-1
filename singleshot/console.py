@@ -248,11 +248,11 @@ def validate():
         for filename in filenames:
             with rasterio.open(os.path.join(r, filename)) as f:
                 x = f.read().transpose([1, 2, 0])
-                print(x.shape)
-                x = clahe.apply(x)
-                print(x.shape)
+                if args.gray_to_rgb:
+                    if args.hist:
+                        x = clahe.apply(x)
+                    x = cv2.cvtColor(x, cv2.COLOR_BayerGR2RGB)
                 x = x[np.newaxis, :]
-                print(x.shape)
                 p = model.predict(x)
                 try:
                     y = singleshot.decode_y(p,
