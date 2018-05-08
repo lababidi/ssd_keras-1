@@ -1029,6 +1029,79 @@ def console():
     df['class_id'] = df['class_id'].apply(lambda xx: dataset_generator.class_map_inv[xx])
     df.to_csv('./' + args.name + '/' + args.outcsv)
 
+def validate():
+    parser = ArgumentParser()
+    parser.add_argument('--model')
+    parser.add_argument('--name', default='ssd')
+    parser.add_argument('--scale', type=float)
+    parser.add_argument('--classes', type=lambda ss: [int(s) for s in ss.split(',')])
+    parser.add_argument('--min_scale', type=float)
+    parser.add_argument('--max_scale', type=float)
+    parser.add_argument('--epochs', type=int, default=1000)
+    parser.add_argument('--rgb_to_gray', type=bool, default=False)
+    parser.add_argument('--gray_to_rgb', type=bool, default=False)
+    parser.add_argument('--multispectral_to_rgb', type=bool, default=False)
+    parser.add_argument('--batch_size', type=int, default=4)
+    parser.add_argument('--outcsv', default='ssd_results.csv')
+    parser.add_argument('--split_ratio', type=float, default=1.0)
+    parser.add_argument('--gpus', default='0,1,2,3')
+    parser.add_argument('input', help="Location of input images")
+    parser.add_argument('output', help="Location of pb output")
+    args = parser.parse_args()
+
+    n_classes = len(args.classes) + 1 if args.classes else 2
+    scales = [args.scale] * 7 if args.scale else None
+    aspect_ratios = [[1.0]] * 6
+    two_boxes_for_ar1 = True
+    limit_boxes = False
+    variances = [0.1, 0.1, 0.2, 0.2]
+    coords = 'minmax'
+    normalize_coords = False
+
+    model, predictor_sizes = SSD(image_size=(args.image_size, args.image_size, args.bands),
+                                 n_classes=n_classes,
+                                 min_scale=args.min_scale,
+                                 max_scale=args.max_scale,
+                                 scales=scales,
+                                 aspect_ratios_global=None,
+                                 aspect_ratios_per_layer=aspect_ratios,
+                                 two_boxes_for_ar1=two_boxes_for_ar1,
+                                 limit_boxes=limit_boxes,
+                                 variances=variances,
+                                 coords=coords,
+                                 normalize_coords=normalize_coords,
+                                 max_pixel=args.max_pixel)
+
+    model.load_weights(args.model)
+    img_height = 300
+    img_width = 300
+
+    class_map_inv = {k + 1: v for k, v in enumerate(args.classes)} if args.classes else None
+
+    results = []
+    for r, d, filenames in os.walk(args.input):
+        for filename in filenames:
+            with rasterio.open(os.path.join(r, filename)) as f:
+                x = f.read().transpose([1, 2, 0])[np.newaxis, :]
+                p = model.predict(x)
+                try:
+                    y = decode_y(p,
+                                 confidence_thresh=0.15,
+                                 iou_threshold=0.35,
+                                 top_k=200,
+                                 input_coords='minmax',
+                                 normalize_coords=normalize_coords,
+                                 img_height=img_height,
+                                 img_width=img_width)
+                    for row in y[0]:
+                        results.append([filename] + row.tolist())
+                except ValueError as e:
+                    print(e)
+                    continue
+    df = pandas.DataFrame(results, columns=['file_name', 'class_id', 'conf', 'xmin', 'xmax', 'ymin', 'ymax'])
+    df['class_id'] = df['class_id'].apply(lambda xx: class_map_inv[xx])
+    df.to_csv('./' + args.name + '/' + args.outcsv)
+
 
 def convert_model():
     parser = ArgumentParser()

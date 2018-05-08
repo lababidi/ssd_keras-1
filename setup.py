@@ -14,6 +14,7 @@ setup(
     entry_points={
         'console_scripts': [
             'trainssd=singleshot:console',
+            'validatessd=singleshot:validate',
         ],
     },
 )
