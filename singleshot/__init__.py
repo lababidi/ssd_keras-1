@@ -2,6 +2,7 @@ import os
 from argparse import ArgumentParser
 from math import ceil
 
+import h5py
 import numpy as np
 import pandas
 import rasterio
@@ -1044,6 +1045,8 @@ def validate():
 
     os.environ["CUDA_VISIBLE_DEVICES"] = args.gpus
 
+    print_structure(args.model)
+
     n_classes = len(args.classes) + 1 if args.classes else 2
     scales = [args.scale] * 7 if args.scale else None
     aspect_ratios = [[1.0]] * 6
@@ -1104,6 +1107,37 @@ def validate():
     df['class_id'] = df['class_id'].apply(lambda xx: class_map_inv[xx])
     df.to_csv('./' + args.name + '/' + args.outcsv)
 
+
+def print_structure(weight_file_path):
+    """
+    Prints out the structure of HDF5 file.
+
+    Args:
+      weight_file_path (str) : Path to the file to analyze
+    """
+    f = h5py.File(weight_file_path)
+    try:
+        if len(f.attrs.items()):
+            print("{} contains: ".format(weight_file_path))
+            print("Root attributes:")
+        for key, value in f.attrs.items():
+            print("  {}: {}".format(key, value))
+
+        if len(f.items())==0:
+            return
+
+        for layer, g in f.items():
+            print("  {}".format(layer))
+            print("    Attributes:")
+            for key, value in g.attrs.items():
+                print("      {}: {}".format(key, value))
+
+            print("    Dataset:")
+            for p_name in g.keys():
+                param = g[p_name]
+                print("      {}: {}".format(p_name, param.shape))
+    finally:
+        f.close()
 
 def convert_model():
     parser = get_args()
