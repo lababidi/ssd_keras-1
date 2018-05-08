@@ -1057,26 +1057,26 @@ def validate():
     coords = 'minmax'
     normalize_coords = False
     #
-    # model, predictor_sizes = SSD(image_size=(args.image_size, args.image_size, 3),
-    #                              n_classes=n_classes,
-    #                              min_scale=args.min_scale,
-    #                              max_scale=args.max_scale,
-    #                              scales=scales,
-    #                              aspect_ratios_global=None,
-    #                              aspect_ratios_per_layer=aspect_ratios,
-    #                              two_boxes_for_ar1=two_boxes_for_ar1,
-    #                              limit_boxes=limit_boxes,
-    #                              variances=variances,
-    #                              coords=coords,
-    #                              normalize_coords=normalize_coords,
-    #                              max_pixel=args.max_pixel)
+    model, predictor_sizes = SSD(image_size=(args.image_size, args.image_size, 3),
+                                 n_classes=n_classes,
+                                 min_scale=args.min_scale,
+                                 max_scale=args.max_scale,
+                                 scales=scales,
+                                 aspect_ratios_global=None,
+                                 aspect_ratios_per_layer=aspect_ratios,
+                                 two_boxes_for_ar1=two_boxes_for_ar1,
+                                 limit_boxes=limit_boxes,
+                                 variances=variances,
+                                 coords=coords,
+                                 normalize_coords=normalize_coords,
+                                 max_pixel=args.max_pixel)
 
-    model = keras.models.load_model(args.model,
-                                    custom_objects={"tf": tf,
-                                                    'L2Normalization': L2Normalization,
-                                                    "AnchorBoxes": AnchorBoxes})
+    # model = keras.models.load_model(args.model,
+    #                                 custom_objects={"tf": tf,
+    #                                                 'L2Normalization': L2Normalization,
+    #                                                 "AnchorBoxes": AnchorBoxes})
 
-    # model.load_weights(args.model)
+    model.load_weights(args.model)
     img_height = 300
     img_width = 300
     import cv2
