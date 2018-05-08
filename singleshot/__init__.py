@@ -1042,6 +1042,8 @@ def validate():
     parser.add_argument('output', help="Location of pb output")
     args = parser.parse_args()
 
+    os.environ["CUDA_VISIBLE_DEVICES"] = args.gpus
+
     n_classes = len(args.classes) + 1 if args.classes else 2
     scales = [args.scale] * 7 if args.scale else None
     aspect_ratios = [[1.0]] * 6
@@ -1068,6 +1070,7 @@ def validate():
     model.load_weights(args.model)
     img_height = 300
     img_width = 300
+    import cv2
     clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(4, 4))
 
     class_map_inv = {k + 1: v for k, v in enumerate(args.classes)} if args.classes else None
@@ -1103,6 +1106,8 @@ def convert_model():
     parser = get_args()
     parser.add_argument('output', help="Location of pb output")
     args = parser.parse_args()
+
+    os.environ["CUDA_VISIBLE_DEVICES"] = args.gpus
 
     n_classes = len(args.classes) + 1 if args.classes else 2
     scales = [args.scale] * 7 if args.scale else None
