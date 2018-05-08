@@ -229,8 +229,8 @@ class BatchGenerator:
                     k += 1
                     continue
                 else:
-                    if self.include_classes == None or int(row[self.input_format.index(
-                            'class_id')].strip()) in self.include_classes:  # If the class_id is among the classes that are to be included in the dataset...
+                    if self.include_classes == None or int(row[self.input_format.index('class_id')].strip()) in self.include_classes:
+                        # If the class_id is among the classes that are to be included in the dataset...
                         obj = [row[self.input_format.index('image_name')].strip()]
                         # Store the box class and coordinates here
                         for item in self.box_output_format:
@@ -452,7 +452,10 @@ class BatchGenerator:
             for filename in filenames[current:current + batch_size]:
                 with rasterio.open('{}'.format(filename)) as img:
                     img = img.read().transpose([1, 2, 0])
-                    batch_X.append(img)
+                    if rgb_to_gray and 'png' in filename:
+                        batch_X.append(img[:, :, 0:1])
+                    else:
+                        batch_X.append(img)
             batch_y = deepcopy(labels[current:current + batch_size])
 
             this_filenames = filenames[current:current + batch_size]  # The filenames of the files in the current batch
