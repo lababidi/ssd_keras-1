@@ -170,6 +170,7 @@ class BatchGenerator:
         self.image_set_path = None
         self.image_set = None
         self.classes = None
+        self.clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(4, 4))
 
         # The two variables below store the output from the parsers. This is the input for the generate() method
         # `self.filenames` is a list containing all file names of the image samples. Note that it does not contain the actual image files themselves.
@@ -450,8 +451,7 @@ class BatchGenerator:
 
             for filename in filenames[current:current + batch_size]:
                 with rasterio.open('{}'.format(filename)) as img:
-                    img = np.array(img.read())
-                    img = img.transpose([1, 2, 0])
+                    img = img.read().transpose([1, 2, 0])
                     batch_X.append(img)
             batch_y = deepcopy(labels[current:current + batch_size])
 
@@ -479,6 +479,7 @@ class BatchGenerator:
                     batch_X[i] = np.expand_dims(cv2.cvtColor(batch_X[i], cv2.COLOR_RGB2GRAY), 3)
 
                 elif gray_to_rgb and not rgb_to_gray and not multispectral_to_rgb:
+                    batch_X[i] = self.clahe.apply(batch_X[i])
                     batch_X[i] = cv2.cvtColor(batch_X[i], cv2.COLOR_BayerGR2RGB)
                     
                 elif multispectral_to_rgb and not rgb_to_gray and not gray_to_rgb:
