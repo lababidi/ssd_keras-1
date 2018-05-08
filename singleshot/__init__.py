@@ -1119,6 +1119,7 @@ def convert_model():
     parser.add_argument('--outcsv', default='ssd_results.csv')
     parser.add_argument('--split_ratio', type=float, default=1.0)
     parser.add_argument('--gpus', default='0,1,2,3')
+    parser.add_argument('--image_size', default=300)
     parser.add_argument('output', help="Location of pb output")
     args = parser.parse_args()
 
@@ -1131,7 +1132,7 @@ def convert_model():
     coords = 'minmax'
     normalize_coords = False
 
-    model, predictor_sizes = SSD(image_size=(args.image_size, args.image_size, args.bands),
+    model, predictor_sizes = SSD(image_size=(args.image_size, args.image_size, 3),
                                  n_classes=n_classes,
                                  min_scale=args.min_scale,
                                  max_scale=args.max_scale,
