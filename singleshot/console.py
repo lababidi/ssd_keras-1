@@ -11,8 +11,8 @@ from keras import backend as K
 from keras.callbacks import ModelCheckpoint, LearningRateScheduler
 from keras.optimizers import Adam
 
-from singleshot import SSD, SSDLoss, SSDBoxEncoder, BatchGenerator, decode_y
-
+# from singleshot import SSD, SSDLoss, SSDBoxEncoder, BatchGenerator, decode_y
+import singleshot
 
 def append_to_aspect_ratio_list(max_aspect_ratio=None):
     ratios = list(1 / np.linspace(1.0, max_aspect_ratio, 6))
@@ -47,7 +47,7 @@ def console():
     normalize_coords = False
 
     K.clear_session()
-    model, predictor_sizes = SSD(image_size=(img_height, img_width, img_channels),
+    model, predictor_sizes = singleshot.SSD(image_size=(img_height, img_width, img_channels),
                                  n_classes=n_classes,
                                  min_scale=args.min_scale,
                                  max_scale=args.max_scale,
@@ -64,9 +64,9 @@ def console():
         model.load_weights(args.model, by_name=True)
 
     model.compile(optimizer=(Adam(lr=0.01, beta_1=0.9, beta_2=0.999, epsilon=1e-08, decay=5e-05)),
-                  loss=SSDLoss(neg_pos_ratio=3, n_neg_min=0, alpha=0.1).compute_loss)
+                  loss=singleshot.SSDLoss(neg_pos_ratio=3, n_neg_min=0, alpha=0.1).compute_loss)
 
-    ssd_box_encoder = SSDBoxEncoder(img_height=img_height,
+    ssd_box_encoder = singleshot.SSDBoxEncoder(img_height=img_height,
                                     img_width=img_width,
                                     n_classes=n_classes,
                                     predictor_sizes=predictor_sizes,
@@ -83,7 +83,7 @@ def console():
                                     coords=coords,
                                     normalize_coords=normalize_coords)
 
-    dataset_generator = BatchGenerator(include_classes=args.classes)
+    dataset_generator = singleshot.BatchGenerator(include_classes=args.classes)
 
     if not os.path.exists(args.name):
         os.mkdir(args.name)
@@ -151,7 +151,7 @@ def console():
                     x = f.read().transpose([1, 2, 0])[np.newaxis, :]
                     p = model.predict(x)
                     try:
-                        y = decode_y(p,
+                        y = singleshot.decode_y(p,
                                      confidence_thresh=0.15,
                                      iou_threshold=0.35,
                                      top_k=200,
@@ -217,7 +217,7 @@ def validate():
     normalize_coords = False
 
     K.clear_session()
-    model, predictor_sizes = SSD(image_size=(img_height, img_width, img_channels),
+    model, predictor_sizes = singleshot.SSD(image_size=(img_height, img_width, img_channels),
                                  n_classes=n_classes,
                                  min_scale=args.min_scale,
                                  max_scale=args.max_scale,
@@ -255,7 +255,7 @@ def validate():
                 print(x.shape)
                 p = model.predict(x)
                 try:
-                    y = decode_y(p,
+                    y = singleshot.decode_y(p,
                                  confidence_thresh=0.15,
                                  iou_threshold=0.35,
                                  top_k=200,
@@ -321,7 +321,7 @@ def convert_model():
     coords = 'minmax'
     normalize_coords = False
 
-    model, predictor_sizes = SSD(image_size=(args.image_size, args.image_size, 3),
+    model, predictor_sizes = singleshot.SSD(image_size=(args.image_size, args.image_size, 3),
                                  n_classes=n_classes,
                                  min_scale=args.min_scale,
                                  max_scale=args.max_scale,
