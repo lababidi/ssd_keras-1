@@ -272,7 +272,7 @@ def validate():
                     for box in y[0]:
                         poly = Polygon([[box[2], box[4]], [box[3], box[4]], [box[3], box[5]],
                                               [box[2], box[5]], [box[2], box[4]]])
-                        results.append((filename, box[0], "", affine_transform(poly, f.transform[:6]), box[1]))
+                        results.append((filename, box[0], affine_transform(poly, f.transform[:6]), box[1]))
                         # results.append([filename] + row.tolist())
                 except ValueError as e:
                     print(e)
