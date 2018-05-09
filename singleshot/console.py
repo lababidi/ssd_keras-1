@@ -2,6 +2,7 @@ import os
 from argparse import ArgumentParser
 from math import ceil
 
+import geopandas
 import h5py
 import numpy as np
 import pandas
@@ -239,6 +240,8 @@ def validate():
     #                                                 "AnchorBoxes": AnchorBoxes})
 
     import cv2
+    from shapely.geometry import Polygon
+    from shapely.affinity import affine_transform
     clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(4, 4))
 
     class_map_inv = {k + 1: v for k, v in enumerate(args.classes)} if args.classes else None
@@ -265,12 +268,16 @@ def validate():
                                  img_height=img_height,
                                  img_width=img_width)
                     print("Found {} results".format(len(y[0])))
-                    for row in y[0]:
-                        results.append([filename] + row.tolist())
+                    for box in y[0]:
+                        poly = Polygon([[box[2], box[4]], [box[3], box[4]], [box[3], box[5]],
+                                              [box[2], box[5]], [box[2], box[4]]])
+                        results.append((filename, box[0], "", affine_transform(poly, f.transform), box[1]))
+                        # results.append([filename] + row.tolist())
                 except ValueError as e:
                     print(e)
                     continue
-    df = pandas.DataFrame(results, columns=['file_name', 'class_id', 'conf', 'xmin', 'xmax', 'ymin', 'ymax'])
+    df = geopandas.GeoDataFrame(results, columns=['file_name', 'class_id', 'conf', 'geometry'])
+    # df = pandas.DataFrame(results, columns=['file_name', 'class_id', 'conf', 'xmin', 'xmax', 'ymin', 'ymax'])
     df['class_id'] = df['class_id'].apply(lambda xx: class_map_inv[xx])
     df.to_csv(args.output)
 
