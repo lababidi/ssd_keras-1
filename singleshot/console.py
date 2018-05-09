@@ -259,7 +259,7 @@ def validate():
                     y = singleshot.decode_y(p,
                                  confidence_thresh=0.15,
                                  iou_threshold=0.35,
-                                 top_k=200,
+                                 top_k=2000,
                                  input_coords='minmax',
                                  normalize_coords=normalize_coords,
                                  img_height=img_height,
@@ -272,7 +272,7 @@ def validate():
                     continue
     df = pandas.DataFrame(results, columns=['file_name', 'class_id', 'conf', 'xmin', 'xmax', 'ymin', 'ymax'])
     df['class_id'] = df['class_id'].apply(lambda xx: class_map_inv[xx])
-    df.to_csv('./' + args.name + '/' + args.outcsv)
+    df.to_csv(args.output)
 
 
 def print_structure(weight_file_path):
