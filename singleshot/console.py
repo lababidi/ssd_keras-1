@@ -246,6 +246,7 @@ def validate():
     results = []
     for r, d, filenames in os.walk(args.input):
         for filename in filenames:
+            print(filename)
             with rasterio.open(os.path.join(r, filename)) as f:
                 x = f.read().transpose([1, 2, 0])
                 if args.gray_to_rgb:
@@ -263,6 +264,7 @@ def validate():
                                  normalize_coords=normalize_coords,
                                  img_height=img_height,
                                  img_width=img_width)
+                    print("Found {} results".format(len(y[0])))
                     for row in y[0]:
                         results.append([filename] + row.tolist())
                 except ValueError as e:
