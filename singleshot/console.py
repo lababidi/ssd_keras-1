@@ -252,6 +252,7 @@ def validate():
             print(filename)
             with rasterio.open(os.path.join(r, filename)) as f:
                 x = f.read().transpose([1, 2, 0])
+                print(f.transform)
                 if args.gray_to_rgb:
                     if args.hist:
                         x = clahe.apply(x)
