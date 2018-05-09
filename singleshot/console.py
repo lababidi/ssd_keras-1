@@ -280,7 +280,9 @@ def validate():
     df = geopandas.GeoDataFrame(results, columns=['file_name', 'class_id', 'conf', 'geometry'])
     # df = pandas.DataFrame(results, columns=['file_name', 'class_id', 'conf', 'xmin', 'xmax', 'ymin', 'ymax'])
     df['class_id'] = df['class_id'].apply(lambda xx: class_map_inv[xx])
-    df.to_csv(args.output)
+    with open(args.output) as f:
+        f.write(df.to_json())
+    # df.to_csv(args.output)
 
 
 def print_structure(weight_file_path):
