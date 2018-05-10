@@ -253,6 +253,7 @@ def validate():
             with rasterio.open(os.path.join(r, filename)) as f:
                 x = f.read().transpose([1, 2, 0])
                 print(f.transform)
+                t = f.transform
                 if args.gray_to_rgb:
                     if args.hist:
                         x = clahe.apply(x)
@@ -272,7 +273,8 @@ def validate():
                     for box in y[0]:
                         poly = Polygon([[box[2], box[4]], [box[3], box[4]], [box[3], box[5]],
                                               [box[2], box[5]], [box[2], box[4]]])
-                        results.append((filename, box[0], affine_transform(poly, f.transform[:6]), box[1]))
+                        results.append((filename, box[0],
+                                        affine_transform(poly, [t.a, t.b, t.d, t.e, t.c, t.f]), box[1]))
                         # results.append([filename] + row.tolist())
                 except ValueError as e:
                     print(e)
