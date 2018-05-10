@@ -190,7 +190,7 @@ def get_args():
     parser.add_argument('--outcsv', default='ssd_results.csv')
     parser.add_argument('--split_ratio', type=float, default=1.0)
     parser.add_argument('--gpus', default='0,1,2,3')
-    parser.add_argument('--channels', default=3)
+    parser.add_argument('--channels', type=int, default=3)
     return parser
 
 
