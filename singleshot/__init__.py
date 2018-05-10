@@ -14,8 +14,11 @@ if not os.path.exists(w_root):
     w_root = 'vgg/'
 
 
-def get_w(n):
-    return [np.load(w_root + '{}_0.npy'.format(n)), np.load(w_root + '{}_1.npy'.format(n))]
+def get_w(n, channels=3):
+    if channels==1:
+        return [np.load(w_root + '{}_0.npy'.format(n))[:, :, 1, :], np.load(w_root + '{}_1.npy'.format(n))[:, :, 1, :]]
+    else:
+        return [np.load(w_root + '{}_0.npy'.format(n)), np.load(w_root + '{}_1.npy'.format(n))]
 
 
 def SSD(image_size,
@@ -207,7 +210,7 @@ def SSD(image_size,
                     output_shape=(img_height, img_width, img_channels),
                     name='lambda1')(x)
 
-    conv1_1 = Conv2D(64, (3, 3), activation='relu', padding='same', name='conv1_1', weights=get_w(1), trainable=False)(
+    conv1_1 = Conv2D(64, (3, 3), activation='relu', padding='same', name='conv1_1', weights=get_w(1, img_channels), trainable=False)(
         normed)
     conv1_2 = Conv2D(64, (3, 3), activation='relu', padding='same', name='conv1_2', weights=get_w(2), trainable=False)(
         conv1_1)
