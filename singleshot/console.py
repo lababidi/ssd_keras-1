@@ -102,6 +102,7 @@ def console():
         gray_to_rgb=args.gray_to_rgb,
         multispectral_to_rgb=args.multispectral_to_rgb,
         hist=args.hist,
+        channels=args.channels,
     )
 
     val_generator = dataset_generator.generate(
@@ -113,6 +114,7 @@ def console():
         multispectral_to_rgb=args.multispectral_to_rgb,
         val=True,
         hist=args.hist,
+        channels=args.channels,
     )
 
     def lr_schedule(epoch):

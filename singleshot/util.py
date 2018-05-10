@@ -343,7 +343,7 @@ class BatchGenerator:
             bad_files.append(current_file)
 
     def generate(self, batch_size=32, train=True, ssd_box_encoder=None, rgb_to_gray=False, gray_to_rgb=False,
-                 multispectral_to_rgb = False, diagnostics=False, val=False, hist=False):
+                 multispectral_to_rgb = False, diagnostics=False, val=False, hist=False, channels=3):
         """
         Generate batches of samples and corresponding labels indefinitely from
         lists of filenames and labels.
@@ -488,6 +488,9 @@ class BatchGenerator:
                     
                 elif multispectral_to_rgb and not rgb_to_gray and not gray_to_rgb:
                     batch_X[i] = batch_X[i][:, :, np.r_[-4:-5:-1, -6:-8:-1]]
+
+                elif hist and channels==1:
+                    batch_X[i] = self.clahe.apply(batch_X[i])
                 
             # If any batch items need to be removed because of failed random cropping, remove them now.
             for j in sorted(batch_items_to_remove, reverse=True):
