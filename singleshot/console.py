@@ -282,7 +282,7 @@ def validate():
     df['class_id'] = df['class_id'].apply(lambda xx: class_map_inv[xx])
     print(df.head())
     print(df.dtypes)
-    with open(args.output) as f:
+    with open(args.output, 'w') as f:
         f.write(df.to_json())
     # df.to_csv(args.output)
 
