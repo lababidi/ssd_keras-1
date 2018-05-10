@@ -277,7 +277,7 @@ def validate():
                 except ValueError as e:
                     print(e)
                     continue
-    df = geopandas.GeoDataFrame(results, columns=['file_name', 'class_id', 'conf', 'geometry'])
+    df = geopandas.GeoDataFrame(results, columns=['file_name', 'class_id', 'geometry', 'conf'])
     # df = pandas.DataFrame(results, columns=['file_name', 'class_id', 'conf', 'xmin', 'xmax', 'ymin', 'ymax'])
     df['class_id'] = df['class_id'].apply(lambda xx: class_map_inv[xx])
     print(df.head())
