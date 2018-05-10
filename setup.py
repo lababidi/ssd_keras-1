@@ -15,6 +15,7 @@ setup(
         'console_scripts': [
             'trainssd=singleshot.console:console',
             'validatessd=singleshot.console:validate',
+            'convertssd=singleshot.console:convert_model',
         ],
     },
 )
