@@ -490,7 +490,7 @@ class BatchGenerator:
                     batch_X[i] = batch_X[i][:, :, np.r_[-4:-5:-1, -6:-8:-1]]
 
                 elif hist and channels==1:
-                    batch_X[i] = self.clahe.apply(batch_X[i])
+                    batch_X[i] = np.expand_dims(self.clahe.apply(batch_X[i]), -1)
                 
             # If any batch items need to be removed because of failed random cropping, remove them now.
             for j in sorted(batch_items_to_remove, reverse=True):
