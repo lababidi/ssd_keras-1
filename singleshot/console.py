@@ -33,7 +33,7 @@ def console():
     print(args.min_scale, args.max_scale)
     img_height = 300  # Height of the input images
     img_width = 300  # Width of the input images
-    img_channels = 3  # Number of color channels of the input images
+    img_channels = args.channels  # Number of color channels of the input images
     n_classes = len(args.classes) + 1 if args.classes else 2
     if '0' in args.classes:
         n_classes -= 1
@@ -188,6 +188,7 @@ def get_args():
     parser.add_argument('--outcsv', default='ssd_results.csv')
     parser.add_argument('--split_ratio', type=float, default=1.0)
     parser.add_argument('--gpus', default='0,1,2,3')
+    parser.add_argument('--channels', default=3)
     return parser
 
 
