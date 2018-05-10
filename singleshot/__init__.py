@@ -16,7 +16,7 @@ if not os.path.exists(w_root):
 
 def get_w(n, channels=3):
     if channels==1:
-        return [np.load(w_root + '{}_0.npy'.format(n))[:, :, 1, :], np.load(w_root + '{}_1.npy'.format(n))[:, :, 1, :]]
+        return [np.load(w_root + '{}_0.npy'.format(n))[:, :, 1, :], np.load(w_root + '{}_1.npy'.format(n))]
     else:
         return [np.load(w_root + '{}_0.npy'.format(n)), np.load(w_root + '{}_1.npy'.format(n))]
 
