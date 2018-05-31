@@ -68,7 +68,9 @@ optional arguments:
 
 example
 ```
-trainssd --name TEST_jenkins_trains1 --classes 1,2,3,4,5,6 --min_scale .02 --max_scale .3 --outcsv jenkins_trains_results.csv --gpus 0 /osn2/training/jenkins_trains/300/ssd2.csv
+trainssd --name TEST_jenkins_trains1 --classes 1,2,3,4,5,6 \
+--min_scale .02 --max_scale .3 --outcsv jenkins_trains_results.csv \
+--gpus 0 /osn2/training/jenkins_trains/300/ssd2.csv
 ```
 
 ---
