@@ -1,4 +1,76 @@
-## SSD: Single-Shot MultiBox Detector implementation in Keras
+# SSD: Single-Shot MultiBox Detector implementation in Keras
+
+## Instructions
+After installing the command `trainssd` is available in `bash`
+```bash
+pip3 install https://github.com/lababidi/singleshot.git
+```
+or
+```
+git clone https://github.com/lababidi/singleshot.git
+cd singleshot
+python3 setup.py install
+```
+usage via command-line interface:
+```
+trainssd [-h] [--model MODEL] [--name NAME] [--classes CLASSES]
+                [--scale SCALE] [--min_scale MIN_SCALE]
+                [--max_scale MAX_SCALE] [--max_aspect MAX_ASPECT]
+                [--epochs EPOCHS] [--rgb_to_gray] [--gray_to_rgb]
+                [--multispectral_to_rgb MULTISPECTRAL_TO_RGB] [--hist]
+                [--max_pixel MAX_PIXEL] [--batch_size BATCH_SIZE]
+                [--outcsv OUTCSV] [--split_ratio SPLIT_RATIO] [--gpus GPUS]
+                [--channels CHANNELS]
+                csv
+
+positional arguments:
+  csv
+
+optional arguments:
+  -h, --help
+  show this help message and exit
+  --model MODEL
+  if loading a pretrained model load file here
+  --name NAME
+  name of model and folder
+  --classes CLASSES
+  comma separted list of class ids to use from CSV [10,18,19]
+  --scale SCALE
+  use this or min/max scale to set the objet scale sizes
+  --min_scale MIN_SCALE
+  min scale of objects
+  --max_scale MAX_SCALE
+  max scale of objects
+  --max_aspect MAX_ASPECT
+  maximum aspect ratio to scale up to. minimum is 1. the reciprocal is handled
+  --epochs EPOCHS
+  --rgb_to_gray
+  if the image is rgb and there's a desire to flatten to grayscale, use this
+  --gray_to_rgb
+  if the image is single band gray use this to duplicate the bands
+  --multispectral_to_rgb MULTISPECTRAL_TO_RGB
+  if the image is 8, snag the 3 rgb bands
+  --hist
+  apply histogram normalization (only with grayscale images)
+  --max_pixel MAX_PIXEL
+  maximum value of the image pixels (tif: 2048 or 65536, png:255)
+  --batch_size BATCH_SIZE
+  default 4
+  --outcsv OUTCSV
+  location of the output csv of results from validation (beta)
+  --split_ratio SPLIT_RATIO
+  split training data into train/test, default is none
+  --gpus GPUS
+  which gpu should be used
+  --channels CHANNELS
+  how many bands/channels are the images
+```
+
+example
+```
+trainssd --name TEST_jenkins_trains1 --classes 1,2,3,4,5,6 --min_scale .02 --max_scale .3 --outcsv jenkins_trains_results.csv --gpus 0 /osn2/training/jenkins_trains/300/ssd2.csv
+```
+
 ---
 ### Contents
 
